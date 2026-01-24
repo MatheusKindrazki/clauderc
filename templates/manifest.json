@@ -1,0 +1,93 @@
+{
+  "version": "1.0.0",
+  "generatedAt": "2025-01-24T00:00:00.000Z",
+  "files": {
+    "agents/project-setup-wizard.md": {
+      "version": "1.0.0",
+      "added": "1.0.0",
+      "description": "Setup wizard agent for configuring Claude Code in any project"
+    },
+    "skills/project-analysis/SKILL.md": {
+      "version": "1.0.0",
+      "added": "1.0.0",
+      "description": "Systematic project analysis skill"
+    },
+    "skills/claude-code-templates/SKILL.md": {
+      "version": "1.0.0",
+      "added": "1.0.0",
+      "description": "Quick reference for Claude Code templates"
+    },
+    "commands/test.md": {
+      "version": "1.0.0",
+      "added": "1.0.0",
+      "description": "Run project tests"
+    },
+    "commands/lint.md": {
+      "version": "1.0.0",
+      "added": "1.0.0",
+      "description": "Run linter and formatter"
+    },
+    "commands/verify.md": {
+      "version": "1.0.0",
+      "added": "1.0.0",
+      "description": "Full verification before commit/PR"
+    },
+    "commands/pr.md": {
+      "version": "1.0.0",
+      "added": "1.0.0",
+      "description": "Create a Pull Request"
+    },
+    "commands/setup.md": {
+      "version": "1.0.0",
+      "added": "1.0.0",
+      "description": "Project setup and dependency installation"
+    },
+    "templates/project-setup/CLAUDE_MD_TEMPLATE.md": {
+      "version": "1.0.0",
+      "added": "1.0.0",
+      "description": "Template for CLAUDE.md files"
+    },
+    "templates/project-setup/COMMANDS_TEMPLATE.md": {
+      "version": "1.0.0",
+      "added": "1.0.0",
+      "description": "Template for slash commands"
+    },
+    "templates/project-setup/SKILLS_TEMPLATE.md": {
+      "version": "1.0.0",
+      "added": "1.0.0",
+      "description": "Template for skills"
+    },
+    "templates/project-setup/AGENTS_TEMPLATE.md": {
+      "version": "1.0.0",
+      "added": "1.0.0",
+      "description": "Template for subagents"
+    },
+    "templates/project-setup/TEAM_DOCS_TEMPLATE.md": {
+      "version": "1.0.0",
+      "added": "1.0.0",
+      "description": "Template for team documentation"
+    }
+  },
+  "changelog": [
+    {
+      "version": "1.0.0",
+      "date": "2025-01-24",
+      "changes": {
+        "added": [
+          "agents/project-setup-wizard.md - Setup wizard agent",
+          "skills/project-analysis/SKILL.md - Project analysis skill",
+          "skills/claude-code-templates/SKILL.md - Templates reference skill",
+          "commands/test.md - Test command",
+          "commands/lint.md - Lint command",
+          "commands/verify.md - Verify command",
+          "commands/pr.md - PR command",
+          "commands/setup.md - Setup command",
+          "templates/project-setup/* - All project setup templates"
+        ],
+        "changed": [],
+        "removed": [],
+        "deprecated": []
+      }
+    }
+  ]
+}

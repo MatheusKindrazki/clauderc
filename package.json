@@ -1,0 +1,42 @@
+{
+  "name": "claude-code-setup",
+  "version": "1.0.0",
+  "description": "Setup Claude Code with best practices - agents, skills, commands, and templates",
+  "type": "module",
+  "bin": {
+    "claude-code-setup": "bin/cli.js"
+  },
+  "scripts": {
+    "dev": "node bin/cli.js",
+    "test": "node bin/cli.js --help && node bin/cli.js list"
+  },
+  "keywords": [
+    "claude",
+    "claude-code",
+    "anthropic",
+    "ai",
+    "developer-tools",
+    "cli",
+    "setup",
+    "productivity"
+  ],
+  "author": "Matheus Kindrazki",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/matheuskindrazki/claude-code-setup"
+  },
+  "files": [
+    "bin",
+    "templates",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=16.7.0"
+  },
+  "os": [
+    "darwin",
+    "linux",
+    "win32"
+  ]
+}
