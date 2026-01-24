@@ -19,7 +19,7 @@
 
 ---
 
-Based on tips from [Boris Cherny](https://twitter.com/bcherny) (Claude Code creator) and official documentation.
+Based on my experiences and tips from [ Boris Cherny ](https://twitter.com/bcherny) (creator of the Claude Code) and official documentation.
 
 ## Quick Start
 
