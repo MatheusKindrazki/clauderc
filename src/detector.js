@@ -4,7 +4,292 @@
 
 import { existsSync, readFileSync, readdirSync } from 'fs';
 import { join } from 'path';
+import { execSync } from 'child_process';
 import { STACKS, MONOREPO_TOOLS, CI_PLATFORMS } from './stacks.js';
+
+/**
+ * Files to read for LLM analysis
+ */
+const ANALYSIS_FILES = [
+  'package.json',
+  'pyproject.toml',
+  'requirements.txt',
+  'go.mod',
+  'Cargo.toml',
+  'composer.json',
+  'Gemfile',
+  'pom.xml',
+  'build.gradle',
+  'build.gradle.kts',
+  'mix.exs',
+  'pubspec.yaml',
+  'Package.swift',
+  '*.csproj',
+  'turbo.json',
+  'nx.json',
+  'pnpm-workspace.yaml',
+  'lerna.json',
+  '.github/workflows/*.yml',
+  '.gitlab-ci.yml',
+  'Jenkinsfile',
+  'biome.json',
+  'biome.jsonc',
+  '.eslintrc*',
+  '.prettierrc*',
+  'tsconfig.json',
+  'vite.config.*',
+  'next.config.*',
+  'nuxt.config.*',
+];
+
+/**
+ * Read relevant project files for analysis
+ */
+function readProjectFiles(projectPath) {
+  const files = {};
+
+  for (const pattern of ANALYSIS_FILES) {
+    if (pattern.includes('*')) {
+      // Handle glob patterns
+      const parts = pattern.split('/');
+      let searchPath = projectPath;
+      let filePattern = pattern;
+
+      if (parts.length > 1) {
+        searchPath = join(projectPath, ...parts.slice(0, -1));
+        filePattern = parts[parts.length - 1];
+      }
+
+      if (existsSync(searchPath)) {
+        const dirFiles = safeReadDir(searchPath);
+        const regex = new RegExp('^' + filePattern.replace(/\./g, '\\.').replace(/\*/g, '.*') + '$');
+        for (const file of dirFiles) {
+          if (regex.test(file)) {
+            const fullPath = join(searchPath, file);
+            const relativePath = fullPath.replace(projectPath + '/', '');
+            const content = safeReadFile(fullPath);
+            if (content && content.length < 10000) { // Limit file size
+              files[relativePath] = content;
+            }
+          }
+        }
+      }
+    } else {
+      const fullPath = join(projectPath, pattern);
+      if (existsSync(fullPath)) {
+        const content = safeReadFile(fullPath);
+        if (content && content.length < 10000) {
+          files[pattern] = content;
+        }
+      }
+    }
+  }
+
+  return files;
+}
+
+/**
+ * Analyze project using Claude LLM
+ * @param {string} projectPath - Path to the project
+ * @returns {Object} - Detection result compatible with detectStack output
+ */
+export function analyzeWithClaude(projectPath = process.cwd()) {
+  const files = readProjectFiles(projectPath);
+
+  if (Object.keys(files).length === 0) {
+    console.warn('  ⚠ No project files found for analysis');
+    return null;
+  }
+
+  const filesContent = Object.entries(files)
+    .map(([name, content]) => `=== ${name} ===\n${content}`)
+    .join('\n\n');
+
+  const prompt = `Analyze this project and return a JSON configuration for Claude Code setup.
+
+PROJECT FILES:
+${filesContent}
+
+Return ONLY valid JSON (no markdown, no explanation) with this exact structure:
+{
+  "stack": {
+    "language": "Node.js|Python|Go|Rust|Java|PHP|Ruby|.NET|Elixir|Dart|Swift",
+    "framework": "Next.js|Nuxt|React|Vue|FastAPI|Django|Flask|Express|Gin|Rails|Laravel|Phoenix|etc or null",
+    "packageManager": "npm|pnpm|bun|yarn|pip|poetry|uv|cargo|go|maven|gradle|composer|bundler|mix|etc",
+    "monorepo": "turborepo|nx|lerna|pnpm-workspaces|yarn-workspaces or null",
+    "testFramework": "vitest|jest|pytest|go test|cargo test|phpunit|rspec|etc or null",
+    "linter": "eslint|biome|ruff|golangci-lint|clippy|rubocop|etc or null",
+    "formatter": "prettier|biome|black|ruff|gofmt|rustfmt|etc or null",
+    "ci": "github-actions|gitlab-ci|jenkins|circleci or null"
+  },
+  "commands": {
+    "setup": "command to install dependencies",
+    "dev": "command to run dev server",
+    "test": "command to run tests",
+    "lint": "command to lint code",
+    "format": "command to format code",
+    "typecheck": "command to check types or null",
+    "build": "command to build or null",
+    "verify": "combined lint + test + build command"
+  },
+  "preferences": {
+    "notes": "any special preferences detected (e.g., prefers bun over npm, uses specific conventions)"
+  }
+}
+
+IMPORTANT:
+- Detect ACTUAL tools being used, not defaults
+- If bun.lockb exists, use bun commands
+- If pnpm-lock.yaml exists, use pnpm commands
+- If uv.lock exists, use uv commands
+- Look at scripts in package.json for exact command names
+- Return commands that will actually work for this project`;
+
+  try {
+    // Escape the prompt for shell
+    const escapedPrompt = prompt
+      .replace(/\\/g, '\\\\')
+      .replace(/"/g, '\\"')
+      .replace(/\$/g, '\\$')
+      .replace(/`/g, '\\`');
+
+    const result = execSync(
+      `claude -p --model haiku "${escapedPrompt}"`,
+      {
+        encoding: 'utf-8',
+        maxBuffer: 1024 * 1024 * 10,
+        timeout: 120000, // 2 minute timeout
+        cwd: projectPath,
+      }
+    );
+
+    // Extract JSON from response
+    const jsonMatch = result.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      console.warn('  ⚠ Could not parse Claude response');
+      return null;
+    }
+
+    const analysis = JSON.parse(jsonMatch[0]);
+
+    // Convert to detectStack compatible format
+    return {
+      analysis,
+      stack: convertToStackFormat(analysis.stack),
+      commands: analysis.commands,
+      preferences: analysis.preferences,
+    };
+  } catch (error) {
+    console.warn('  ⚠ Claude analysis failed:', error.message);
+    return null;
+  }
+}
+
+/**
+ * Convert LLM analysis to detectStack format
+ */
+function convertToStackFormat(llmStack) {
+  const result = {
+    stacks: [],
+    packageManager: null,
+    framework: null,
+    monorepo: null,
+    ci: null,
+    testFramework: null,
+    linter: null,
+    formatter: null,
+    typechecker: null,
+  };
+
+  // Map language to stack
+  const languageMap = {
+    'Node.js': 'node',
+    'Python': 'python',
+    'Go': 'go',
+    'Rust': 'rust',
+    'Java': 'java',
+    'PHP': 'php',
+    'Ruby': 'ruby',
+    '.NET': 'dotnet',
+    'Elixir': 'elixir',
+    'Dart': 'dart',
+    'Swift': 'swift',
+  };
+
+  const stackId = languageMap[llmStack.language];
+  if (stackId && STACKS[stackId]) {
+    result.stacks.push({ id: stackId, name: llmStack.language, ...STACKS[stackId] });
+  }
+
+  // Package manager
+  if (llmStack.packageManager) {
+    result.packageManager = {
+      name: llmStack.packageManager,
+      install: getInstallCommand(llmStack.packageManager),
+      run: getRunCommand(llmStack.packageManager),
+    };
+  }
+
+  // Framework
+  if (llmStack.framework) {
+    result.framework = { name: llmStack.framework };
+  }
+
+  // Monorepo
+  if (llmStack.monorepo) {
+    result.monorepo = { name: llmStack.monorepo };
+  }
+
+  // CI
+  if (llmStack.ci) {
+    result.ci = { name: llmStack.ci };
+  }
+
+  // Tools
+  result.testFramework = llmStack.testFramework;
+  result.linter = llmStack.linter;
+  result.formatter = llmStack.formatter;
+
+  return result;
+}
+
+/**
+ * Get install command for package manager
+ */
+function getInstallCommand(pm) {
+  const commands = {
+    npm: 'npm install',
+    pnpm: 'pnpm install',
+    bun: 'bun install',
+    yarn: 'yarn install',
+    pip: 'pip install -r requirements.txt',
+    poetry: 'poetry install',
+    uv: 'uv sync',
+    cargo: 'cargo build',
+    go: 'go mod download',
+    maven: 'mvn install -DskipTests',
+    gradle: 'gradle build -x test',
+    composer: 'composer install',
+    bundler: 'bundle install',
+    mix: 'mix deps.get',
+  };
+  return commands[pm] || `${pm} install`;
+}
+
+/**
+ * Get run command prefix for package manager
+ */
+function getRunCommand(pm) {
+  const commands = {
+    npm: 'npm run',
+    pnpm: 'pnpm',
+    bun: 'bun run',
+    yarn: 'yarn',
+    poetry: 'poetry run',
+    uv: 'uv run',
+  };
+  return commands[pm] || '';
+}
 
 /**
  * Detect project stack from current directory
@@ -384,4 +669,4 @@ export function generateCommands(detection) {
   return commands;
 }
 
-export default { detectStack, generateCommands };
+export default { detectStack, generateCommands, analyzeWithClaude };

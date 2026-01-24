@@ -5,7 +5,74 @@
 import { existsSync, mkdirSync, writeFileSync, readFileSync } from 'fs';
 import { join, basename } from 'path';
 import { createInterface } from 'readline';
-import { detectStack, generateCommands } from './detector.js';
+import { execSync } from 'child_process';
+import { detectStack, generateCommands, analyzeWithClaude } from './detector.js';
+
+/**
+ * Use Claude CLI to intelligently merge existing and new content
+ * @param {string} existingContent - The current file content
+ * @param {string} newContent - The proposed new content
+ * @param {string} fileType - Type of file for context (e.g., 'CLAUDE.md', 'settings.json')
+ * @returns {string} - The merged content
+ */
+function mergeWithClaude(existingContent, newContent, fileType) {
+  const prompt = `You are merging two versions of a ${fileType} configuration file.
+
+EXISTING content (user's current configuration - PRESERVE user preferences and customizations):
+---
+${existingContent}
+---
+
+NEW content (auto-generated with updated stack detection):
+---
+${newContent}
+---
+
+IMPORTANT RULES:
+1. PRESERVE any custom rules, preferences, or configurations the user added in EXISTING
+2. UPDATE commands and stack info from NEW if they are more accurate
+3. MERGE sections intelligently - don't duplicate, combine them
+4. Keep user's custom sections that don't exist in NEW
+5. If EXISTING has custom hooks, permissions, or rules - KEEP THEM
+6. Output ONLY the merged content, no explanations
+
+Output the merged ${fileType}:`;
+
+  try {
+    // Use Claude CLI in print mode for non-interactive merge
+    const result = execSync(
+      `claude -p --model haiku "${prompt.replace(/"/g, '\\"').replace(/\n/g, '\\n')}"`,
+      {
+        encoding: 'utf-8',
+        maxBuffer: 1024 * 1024 * 10, // 10MB buffer
+        timeout: 60000, // 60 second timeout
+      }
+    );
+    return result.trim();
+  } catch (error) {
+    // If Claude CLI fails, return new content with a warning
+    console.warn('  ⚠ Could not use Claude for merge, using new content');
+    return newContent;
+  }
+}
+
+/**
+ * Smart write that merges with existing content if file exists
+ * @param {string} filePath - Path to the file
+ * @param {string} newContent - New content to write
+ * @param {string} fileType - Type of file for merge context
+ * @param {boolean} useMerge - Whether to use Claude merge
+ */
+function smartWrite(filePath, newContent, fileType, useMerge = true) {
+  if (useMerge && existsSync(filePath)) {
+    const existingContent = readFileSync(filePath, 'utf-8');
+    const mergedContent = mergeWithClaude(existingContent, newContent, fileType);
+    writeFileSync(filePath, mergedContent);
+    return { merged: true, path: filePath };
+  }
+  writeFileSync(filePath, newContent);
+  return { merged: false, path: filePath };
+}
 
 /**
  * Interactive prompt helper
@@ -307,11 +374,37 @@ export async function runProjectWizard(options = {}) {
   const prompt = createPrompt();
 
   try {
-    log('\n  Analyzing project...\n');
+    log('\n  Claude Code Project Setup\n');
+    log('  This wizard will configure Claude Code for your project.\n');
 
-    // Detect stack
-    const stack = detectStack(projectPath);
-    const commands = generateCommands(stack);
+    // Ask about AI analysis
+    const useAI = await prompt.confirm('  Use Claude AI for smarter detection? (recommended)');
+
+    let stack;
+    let commands;
+    let aiAnalysis = null;
+
+    if (useAI) {
+      log('\n  Analyzing project with Claude AI...\n');
+      aiAnalysis = analyzeWithClaude(projectPath);
+
+      if (aiAnalysis) {
+        stack = aiAnalysis.stack;
+        commands = aiAnalysis.commands;
+
+        if (aiAnalysis.preferences?.notes) {
+          log(`  Notes: ${aiAnalysis.preferences.notes}\n`);
+        }
+      } else {
+        log('  AI analysis failed, falling back to deterministic detection...\n');
+        stack = detectStack(projectPath);
+        commands = generateCommands(stack);
+      }
+    } else {
+      log('\n  Analyzing project...\n');
+      stack = detectStack(projectPath);
+      commands = generateCommands(stack);
+    }
 
     // Show detection results
     log('  Detected configuration:\n');
@@ -375,20 +468,35 @@ export async function runProjectWizard(options = {}) {
     // Check existing .claude directory
     const claudeDir = join(projectPath, '.claude');
     const hasExisting = existsSync(claudeDir);
+    const hasExistingClaudeMd = existsSync(join(projectPath, 'CLAUDE.md'));
+    let useMerge = false;
 
-    if (hasExisting) {
-      const overwrite = await prompt.confirm('\n  .claude/ already exists. Overwrite?');
-      if (!overwrite) {
+    if (hasExisting || hasExistingClaudeMd) {
+      log('\n  Existing configuration detected.\n');
+      const mergeChoice = await prompt.select('  How would you like to proceed?', [
+        { label: 'Merge', description: 'Use Claude to intelligently merge with existing config (recommended)' },
+        { label: 'Overwrite', description: 'Replace all existing configuration' },
+        { label: 'Cancel', description: 'Keep existing configuration unchanged' },
+      ]);
+
+      if (mergeChoice.label === 'Cancel') {
         log('\n  Setup cancelled.\n');
         prompt.close();
         return null;
+      }
+
+      useMerge = mergeChoice.label === 'Merge';
+
+      if (useMerge) {
+        log('\n  Will use Claude to merge configurations intelligently.\n');
       }
     }
 
     prompt.close();
 
     if (dryRun) {
-      log('\n  DRY RUN - Would create:\n');
+      const action = useMerge ? 'merge with' : 'create';
+      log(`\n  DRY RUN - Would ${action}:\n`);
       log('    .claude/');
       log('    ├── commands/test.md');
       log('    ├── commands/lint.md');
@@ -396,30 +504,39 @@ export async function runProjectWizard(options = {}) {
       log('    ├── commands/setup.md');
       log('    ├── commands/pr.md');
       log('    ├── settings.json');
-      log('    CLAUDE.md\n');
+      log('    CLAUDE.md');
+      if (useMerge) {
+        log('\n  Note: Claude will intelligently merge with existing files.\n');
+      }
       return config;
     }
 
     // Create directories
     mkdirSync(join(claudeDir, 'commands'), { recursive: true });
 
-    // Write files
+    // Write files with smart merge
     const files = [
-      { path: join(projectPath, 'CLAUDE.md'), content: generateClaudeMd(config) },
-      { path: join(claudeDir, 'settings.json'), content: JSON.stringify(generateSettings(config), null, 2) },
-      { path: join(claudeDir, 'commands', 'test.md'), content: generateCommandFile('test', config) },
-      { path: join(claudeDir, 'commands', 'lint.md'), content: generateCommandFile('lint', config) },
-      { path: join(claudeDir, 'commands', 'verify.md'), content: generateCommandFile('verify', config) },
-      { path: join(claudeDir, 'commands', 'setup.md'), content: generateCommandFile('setup', config) },
-      { path: join(claudeDir, 'commands', 'pr.md'), content: generateCommandFile('pr', config) },
+      { path: join(projectPath, 'CLAUDE.md'), content: generateClaudeMd(config), type: 'CLAUDE.md' },
+      { path: join(claudeDir, 'settings.json'), content: JSON.stringify(generateSettings(config), null, 2), type: 'settings.json' },
+      { path: join(claudeDir, 'commands', 'test.md'), content: generateCommandFile('test', config), type: 'command file' },
+      { path: join(claudeDir, 'commands', 'lint.md'), content: generateCommandFile('lint', config), type: 'command file' },
+      { path: join(claudeDir, 'commands', 'verify.md'), content: generateCommandFile('verify', config), type: 'command file' },
+      { path: join(claudeDir, 'commands', 'setup.md'), content: generateCommandFile('setup', config), type: 'command file' },
+      { path: join(claudeDir, 'commands', 'pr.md'), content: generateCommandFile('pr', config), type: 'command file' },
     ];
 
     for (const file of files) {
-      writeFileSync(file.path, file.content);
-      log(`  + ${file.path.replace(projectPath, '.')}`);
+      const result = smartWrite(file.path, file.content, file.type, useMerge);
+      const symbol = result.merged ? '~' : '+';
+      const action = result.merged ? 'merged' : 'created';
+      log(`  ${symbol} ${file.path.replace(projectPath, '.')} (${action})`);
     }
 
     log('\n  Project setup complete!\n');
+    if (useMerge) {
+      log('  Files were merged with existing configuration.');
+      log('  Your custom settings and preferences were preserved.\n');
+    }
     log('  Next steps:');
     log('    1. Review CLAUDE.md and adjust as needed');
     log('    2. Commit .claude/ to your repository');
