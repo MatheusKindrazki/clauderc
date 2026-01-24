@@ -12,9 +12,12 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/npm/v/clauderc?color=blue" alt="npm version">
+  <a href="https://www.npmjs.com/package/clauderc"><img src="https://img.shields.io/npm/v/clauderc?color=blue" alt="npm version"></a>
   <img src="https://img.shields.io/badge/platform-macOS%20%7C%20Linux%20%7C%20Windows-lightgrey" alt="platform">
   <img src="https://img.shields.io/badge/node-%3E%3D16.7-green" alt="node version">
+  <a href="https://github.com/matheuskindrazki/clauderc/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="license"></a>
+  <a href="https://github.com/matheuskindrazki/clauderc/blob/main/CONTRIBUTING.md"><img src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg" alt="PRs Welcome"></a>
+  <a href="https://github.com/matheuskindrazki/clauderc/blob/main/CODE_OF_CONDUCT.md"><img src="https://img.shields.io/badge/Contributor%20Covenant-2.1-4baaaa.svg" alt="Contributor Covenant"></a>
 </p>
 
 ---
@@ -198,10 +201,18 @@ After installation:
 
 ## Contributing
 
-Contributions are welcome! Feel free to:
+Contributions are welcome! Please read our guidelines before contributing:
+
+- **[Contributing Guide](CONTRIBUTING.md)** - How to contribute to the project
+- **[Code of Conduct](CODE_OF_CONDUCT.md)** - Community guidelines
+- **[Security Policy](SECURITY.md)** - How to report vulnerabilities
+
+Ways to contribute:
 - Add new commands, skills, or agents
+- Add support for new stacks/languages
 - Improve existing templates
-- Report issues or suggest features
+- Report bugs or suggest features
+- Improve documentation
 
 ## Author
 

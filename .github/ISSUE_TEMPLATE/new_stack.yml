@@ -1,0 +1,65 @@
+name: New Stack Support
+description: Request support for a new language or framework
+title: "[Stack]: "
+labels: ["enhancement", "stack-support"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Want clauderc to support a new language or framework? Fill out the details below!
+
+  - type: input
+    id: stack-name
+    attributes:
+      label: Stack Name
+      description: Name of the language, framework, or tool
+      placeholder: e.g., Zig, Gleam, SvelteKit
+    validations:
+      required: true
+
+  - type: textarea
+    id: detection
+    attributes:
+      label: Detection Files
+      description: What files indicate this stack is in use?
+      placeholder: |
+        - `zig.zon` or `build.zig` for Zig projects
+        - `gleam.toml` for Gleam projects
+    validations:
+      required: true
+
+  - type: textarea
+    id: commands
+    attributes:
+      label: Common Commands
+      description: What commands are typically used with this stack?
+      placeholder: |
+        - Build: `zig build`
+        - Test: `zig build test`
+        - Run: `zig build run`
+    validations:
+      required: true
+
+  - type: textarea
+    id: package-managers
+    attributes:
+      label: Package Managers
+      description: What package managers are used?
+      placeholder: |
+        - zig (built-in)
+        - gyro (third-party)
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional Context
+      description: Any other relevant information about this stack
+      placeholder: Popular frameworks, common project structures, etc.
+
+  - type: checkboxes
+    id: contribution
+    attributes:
+      label: Contribution
+      description: Would you be interested in implementing this?
+      options:
+        - label: I'd be willing to submit a PR for this stack
