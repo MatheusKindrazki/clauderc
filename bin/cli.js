@@ -10,15 +10,15 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const TEMPLATES_DIR = join(__dirname, '..', 'templates');
 const CLAUDE_DIR = join(homedir(), '.claude');
-const MANIFEST_FILE = join(CLAUDE_DIR, '.claude-code-setup.json');
+const MANIFEST_FILE = join(CLAUDE_DIR, '.clauderc.json');
 const IS_WINDOWS = platform() === 'win32';
 
 const VERSION = '1.0.0';
 const AUTHOR = {
   name: 'Matheus Kindrazki',
   github: 'https://github.com/matheuskindrazki',
-  repo: 'https://github.com/matheuskindrazki/claude-code-setup',
-  twitter: 'https://twitter.com/maikiemedia',
+  repo: 'https://github.com/matheuskindrazki/clauderc',
+  twitter: 'https://x.com/kindraScript',
 };
 
 // Windows-compatible colors
@@ -55,7 +55,7 @@ function banner() {
   console.log(`
   ${c.cyan}${c.bold}╔═══════════════════════════════════════════════════════════╗${c.reset}
   ${c.cyan}${c.bold}║${c.reset}                                                           ${c.cyan}${c.bold}║${c.reset}
-  ${c.cyan}${c.bold}║${c.reset}   ${c.bold}Claude Code Setup${c.reset}                                      ${c.cyan}${c.bold}║${c.reset}
+  ${c.cyan}${c.bold}║${c.reset}   ${c.bold}clauderc${c.reset}                                                ${c.cyan}${c.bold}║${c.reset}
   ${c.cyan}${c.bold}║${c.reset}   ${c.dim}Best practices for Claude Code - agents, skills & more${c.reset}  ${c.cyan}${c.bold}║${c.reset}
   ${c.cyan}${c.bold}║${c.reset}                                                           ${c.cyan}${c.bold}║${c.reset}
   ${c.cyan}${c.bold}╚═══════════════════════════════════════════════════════════╝${c.reset}
@@ -189,7 +189,7 @@ function listInstalled() {
     console.log(`  ${c.dim}Installed:${c.reset} ${new Date(installed.installedAt).toLocaleDateString()}`);
     if (pkg && isNewer(pkg.version, installed.version)) {
       console.log(`  ${c.yellow}${c.bold}Update available: v${pkg.version}${c.reset}`);
-      console.log(`  ${c.dim}Run${c.reset} npx claude-code-setup update`);
+      console.log(`  ${c.dim}Run${c.reset} npx clauderc update`);
     }
     console.log();
   }
@@ -493,17 +493,228 @@ function showChangelog() {
   showFooter();
 }
 
+// ============================================================
+// PROJECT COMMAND - Setup .claude/ in current project
+// ============================================================
+
+import { STACKS, MONOREPO_TOOLS, CI_PLATFORMS } from '../src/stacks.js';
+import { detectStack, generateCommands } from '../src/detector.js';
+
+function createPrompt() {
+  const rl = createInterface({ input: process.stdin, output: process.stdout });
+  return {
+    ask: (q) => new Promise(r => rl.question(q, a => r(a.trim()))),
+    confirm: async (q) => {
+      const a = await new Promise(r => rl.question(`${q} (Y/n): `, r));
+      return a.toLowerCase() !== 'n';
+    },
+    close: () => rl.close(),
+  };
+}
+
+function generateClaudeMd(config) {
+  const { projectName, stack, commands, customRules } = config;
+  let content = `# ${projectName}\n\n## Stack\n`;
+
+  if (stack.stacks.length > 0) content += `- **Language**: ${stack.stacks.map(s => s.name).join(', ')}\n`;
+  if (stack.framework) content += `- **Framework**: ${stack.framework.name}\n`;
+  if (stack.packageManager) content += `- **Package Manager**: ${stack.packageManager.name}\n`;
+  if (stack.monorepo) content += `- **Monorepo**: ${stack.monorepo.name}\n`;
+
+  content += `\n## Commands\n\n\`\`\`bash\n`;
+  if (commands.setup) content += `# Setup\n${commands.setup}\n\n`;
+  if (commands.dev) content += `# Development\n${commands.dev}\n\n`;
+  if (commands.test) content += `# Test\n${commands.test}\n\n`;
+  if (commands.lint) content += `# Lint\n${commands.lint}\n\n`;
+  if (commands.build) content += `# Build\n${commands.build}\n\n`;
+  if (commands.verify) content += `# Full verification\n${commands.verify}\n`;
+  content += `\`\`\`\n\n`;
+
+  content += `## Workflow\n\n### Plan Mode\nUse Plan Mode (Shift+Tab 2x) for:\n- Refactoring > 3 files\n- New feature implementation\n- Architecture changes\n\n`;
+  content += `### Verification\n- ALWAYS run tests before committing\n- NEVER skip tests without explicit approval\n`;
+
+  if (customRules?.length > 0) {
+    content += `\n## Project Rules\n\n${customRules.map(r => `- ${r}`).join('\n')}\n`;
+  }
+
+  content += `\n## Documentation\n@README.md\n`;
+  return content;
+}
+
+function generateProjectSettings(config) {
+  const { stack, commands } = config;
+  const pm = stack.packageManager?.name || 'npm';
+  const allowedCommands = ['Bash(git:*)', 'Bash(gh:*)'];
+
+  // Add package manager
+  const pmCommands = { bun: 'bun', pnpm: 'pnpm', yarn: 'yarn', npm: 'npm', poetry: 'poetry', cargo: 'cargo' };
+  if (pmCommands[pm]) allowedCommands.push(`Bash(${pmCommands[pm]}:*)`);
+
+  // Add stack-specific
+  const stackId = stack.stacks[0]?.id;
+  const stackCommands = {
+    go: ['go', 'golangci-lint'],
+    rust: ['cargo'],
+    python: ['pytest', 'ruff', 'mypy', 'python'],
+    dotnet: ['dotnet'],
+    elixir: ['mix'],
+    ruby: ['bundle', 'rails'],
+    php: ['composer', 'php'],
+    java: ['mvn', 'gradle'],
+  };
+  (stackCommands[stackId] || []).forEach(cmd => allowedCommands.push(`Bash(${cmd}:*)`));
+
+  const settings = { permissions: { allow: allowedCommands } };
+
+  if (commands.format || commands.lint) {
+    settings.hooks = {
+      PostToolUse: [{
+        matcher: 'Edit|Write',
+        hooks: [{ type: 'command', command: `${commands.format || commands.lint} || true` }],
+      }],
+    };
+  }
+
+  return settings;
+}
+
+function generateCommandFile(name, commands, stackName) {
+  const templates = {
+    test: `# Run tests\n\n\`\`\`bash\n${commands.test || '# Configure test command'}\n\`\`\``,
+    lint: `# Lint code\n\n\`\`\`bash\n${commands.lint || '# Configure lint command'}\n\`\`\``,
+    verify: `# Full verification\n\nRuns lint, test, and build.\n\n\`\`\`bash\n${commands.verify || '# Configure verify command'}\n\`\`\``,
+    setup: `# Setup project\n\n\`\`\`bash\n${commands.setup || '# Configure setup command'}\n\`\`\``,
+    pr: `# Create Pull Request\n\n1. Run /verify\n2. Commit changes\n3. Push to remote\n4. Create PR with \`gh pr create\``,
+  };
+  return templates[name] || '';
+}
+
+async function projectSetup(options = {}) {
+  const { dryRun = false } = options;
+  const projectPath = process.cwd();
+  const projectName = basename(projectPath);
+
+  banner();
+  console.log(`  ${c.bold}Project Setup Wizard${c.reset}\n`);
+  console.log(`  ${c.dim}Project:${c.reset} ${c.cyan}${projectName}${c.reset}`);
+  console.log(`  ${c.dim}Path:${c.reset}    ${projectPath}\n`);
+
+  console.log(`  ${c.bold}Analyzing...${c.reset}\n`);
+
+  const stack = detectStack(projectPath);
+  const commands = generateCommands(stack);
+
+  // Show detection
+  console.log(`  ${c.bold}Detected Stack${c.reset}\n`);
+  if (stack.stacks.length > 0) {
+    console.log(`    Language:        ${c.green}${stack.stacks.map(s => s.name).join(', ')}${c.reset}`);
+  } else {
+    console.log(`    Language:        ${c.yellow}Not detected${c.reset}`);
+  }
+  if (stack.framework) console.log(`    Framework:       ${c.green}${stack.framework.name}${c.reset}`);
+  if (stack.packageManager) console.log(`    Package Manager: ${c.green}${stack.packageManager.name}${c.reset}`);
+  if (stack.monorepo) console.log(`    Monorepo:        ${c.green}${stack.monorepo.name}${c.reset}`);
+  if (stack.ci) console.log(`    CI/CD:           ${c.green}${stack.ci.name}${c.reset}`);
+
+  console.log(`\n  ${c.bold}Generated Commands${c.reset}\n`);
+  if (commands.setup) console.log(`    ${c.dim}setup:${c.reset}  ${commands.setup}`);
+  if (commands.dev) console.log(`    ${c.dim}dev:${c.reset}    ${commands.dev}`);
+  if (commands.test) console.log(`    ${c.dim}test:${c.reset}   ${commands.test}`);
+  if (commands.lint) console.log(`    ${c.dim}lint:${c.reset}   ${commands.lint}`);
+  if (commands.build) console.log(`    ${c.dim}build:${c.reset}  ${commands.build}`);
+
+  const prompt = createPrompt();
+
+  try {
+    console.log('');
+    const confirmed = await prompt.confirm('  Proceed with this configuration?');
+
+    if (!confirmed) {
+      console.log(`\n  ${c.yellow}Setup cancelled.${c.reset}\n`);
+      prompt.close();
+      return;
+    }
+
+    // Custom rules
+    console.log(`\n  ${c.dim}Add project-specific rules (empty to skip):${c.reset}\n`);
+    const customRules = [];
+    let rule = await prompt.ask('    Rule: ');
+    while (rule) {
+      customRules.push(rule);
+      rule = await prompt.ask('    Rule: ');
+    }
+
+    prompt.close();
+
+    const config = { projectName, stack, commands, customRules };
+    const claudeDir = join(projectPath, '.claude');
+
+    if (dryRun) {
+      console.log(`\n  ${c.yellow}DRY RUN${c.reset} - Would create:\n`);
+      console.log('    CLAUDE.md');
+      console.log('    .claude/settings.json');
+      console.log('    .claude/commands/test.md');
+      console.log('    .claude/commands/lint.md');
+      console.log('    .claude/commands/verify.md');
+      console.log('    .claude/commands/setup.md');
+      console.log('    .claude/commands/pr.md\n');
+      return;
+    }
+
+    // Create files
+    mkdirSync(join(claudeDir, 'commands'), { recursive: true });
+
+    const stackName = stack.stacks[0]?.name || 'Project';
+    const files = [
+      { path: 'CLAUDE.md', content: generateClaudeMd(config) },
+      { path: '.claude/settings.json', content: JSON.stringify(generateProjectSettings(config), null, 2) },
+      { path: '.claude/commands/test.md', content: generateCommandFile('test', commands, stackName) },
+      { path: '.claude/commands/lint.md', content: generateCommandFile('lint', commands, stackName) },
+      { path: '.claude/commands/verify.md', content: generateCommandFile('verify', commands, stackName) },
+      { path: '.claude/commands/setup.md', content: generateCommandFile('setup', commands, stackName) },
+      { path: '.claude/commands/pr.md', content: generateCommandFile('pr', commands, stackName) },
+    ];
+
+    console.log(`\n  ${c.bold}Creating files${c.reset}\n`);
+    for (const file of files) {
+      writeFileSync(join(projectPath, file.path), file.content);
+      console.log(`    ${c.green}+${c.reset} ${file.path}`);
+    }
+
+    console.log(`
+  ${c.green}${c.bold}╔═══════════════════════════════════════════════════════════╗${c.reset}
+  ${c.green}${c.bold}║${c.reset}                                                           ${c.green}${c.bold}║${c.reset}
+  ${c.green}${c.bold}║${c.reset}   ${c.green}${c.bold}✓ Project Setup Complete!${c.reset}                              ${c.green}${c.bold}║${c.reset}
+  ${c.green}${c.bold}║${c.reset}                                                           ${c.green}${c.bold}║${c.reset}
+  ${c.green}${c.bold}╚═══════════════════════════════════════════════════════════╝${c.reset}
+
+  ${c.bold}Next steps:${c.reset}
+
+    1. Review ${c.cyan}CLAUDE.md${c.reset} and adjust as needed
+    2. Commit ${c.cyan}.claude/${c.reset} to your repository
+    3. Use ${c.cyan}/test${c.reset}, ${c.cyan}/lint${c.reset}, ${c.cyan}/verify${c.reset} in Claude Code
+
+`);
+    showFooter();
+
+  } catch (error) {
+    prompt.close();
+    throw error;
+  }
+}
+
 function showHelp() {
   banner();
 
   console.log(`  ${c.bold}Usage${c.reset}
 
-    npx claude-code-setup ${c.cyan}<command>${c.reset} [options]
+    npx clauderc ${c.cyan}<command>${c.reset} [options]
 
   ${c.bold}Commands${c.reset}
 
-    ${c.cyan}init${c.reset}        Install all components (first time)
-    ${c.cyan}update${c.reset}      Update to latest version
+    ${c.cyan}init${c.reset}        Install global components (~/.claude/)
+    ${c.cyan}project${c.reset}     Setup current project (.claude/ + CLAUDE.md)
+    ${c.cyan}update${c.reset}      Update global components to latest version
     ${c.cyan}list${c.reset}        Show installed components
     ${c.cyan}changelog${c.reset}   Show version history
     ${c.cyan}help${c.reset}        Show this message
@@ -515,27 +726,32 @@ function showHelp() {
 
   ${c.bold}Examples${c.reset}
 
-    ${c.dim}# First time setup${c.reset}
-    npx claude-code-setup init
+    ${c.dim}# First time global setup${c.reset}
+    npx clauderc init
 
-    ${c.dim}# Update to latest${c.reset}
-    npx claude-code-setup update
+    ${c.dim}# Setup current project (interactive)${c.reset}
+    npx clauderc project
 
-    ${c.dim}# Force reinstall everything${c.reset}
-    npx claude-code-setup init --force
+    ${c.dim}# Update global components${c.reset}
+    npx clauderc update
 
-  ${c.bold}What gets installed${c.reset}
+  ${c.bold}Two-Level Setup${c.reset}
 
-    ${c.cyan}~/.claude/${c.reset}
-    ├── ${c.green}agents/${c.reset}
-    │   └── project-setup-wizard.md
-    ├── ${c.green}skills/${c.reset}
-    │   ├── project-analysis/
-    │   └── claude-code-templates/
-    ├── ${c.green}commands/${c.reset}
-    │   └── test, lint, verify, pr, setup
-    └── ${c.green}templates/${c.reset}
-        └── project-setup/
+    ${c.cyan}Global (~/.claude/)${c.reset}
+    ├── agents/         ${c.dim}# Reusable agents${c.reset}
+    ├── skills/         ${c.dim}# Reusable skills${c.reset}
+    ├── commands/       ${c.dim}# Default commands${c.reset}
+    └── templates/      ${c.dim}# Templates for project setup${c.reset}
+
+    ${c.cyan}Project (.claude/)${c.reset}
+    ├── commands/       ${c.dim}# Project-specific commands${c.reset}
+    ├── settings.json   ${c.dim}# Permissions & hooks${c.reset}
+    └── CLAUDE.md       ${c.dim}# Project context for Claude${c.reset}
+
+  ${c.bold}Supported Stacks${c.reset}
+
+    Node.js/TypeScript, Python, Go, Rust, Java/Kotlin,
+    PHP, Ruby, C#/.NET, Elixir, Swift, Dart/Flutter
 
 `);
   showFooter();
@@ -560,6 +776,10 @@ switch (command) {
   case 'init':
   case 'install':
     init({ force: flags.force, dryRun: flags.dryRun });
+    break;
+  case 'project':
+  case 'setup':
+    projectSetup({ dryRun: flags.dryRun });
     break;
   case 'update':
   case 'upgrade':

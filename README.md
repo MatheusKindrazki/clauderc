@@ -1,4 +1,4 @@
-# Claude Code Setup
+# clauderc
 
 <p align="center">
   <strong>Setup Claude Code with best practices - agents, skills, commands, and templates.</strong>
@@ -12,7 +12,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/npm/v/claude-code-setup?color=blue" alt="npm version">
+  <img src="https://img.shields.io/npm/v/clauderc?color=blue" alt="npm version">
   <img src="https://img.shields.io/badge/platform-macOS%20%7C%20Linux%20%7C%20Windows-lightgrey" alt="platform">
   <img src="https://img.shields.io/badge/node-%3E%3D16.7-green" alt="node version">
 </p>
@@ -24,19 +24,27 @@ Based on tips from [Boris Cherny](https://twitter.com/bcherny) (Claude Code crea
 ## Quick Start
 
 ```bash
-# First time install
-npx claude-code-setup init
+# Global setup (agents, skills, commands, templates)
+npx clauderc init
+
+# Project setup (CLAUDE.md, .claude/, settings)
+npx clauderc project
 
 # Update to latest version
-npx claude-code-setup update
-
-# Check what's installed
-npx claude-code-setup list
+npx clauderc update
 ```
 
 Works on **macOS**, **Linux**, and **Windows**.
 
-## What Gets Installed
+## Two-Level Setup
+
+### Global (`~/.claude/`)
+
+Shared components available to all projects:
+
+```bash
+npx clauderc init
+```
 
 ```
 ~/.claude/
@@ -52,52 +60,102 @@ Works on **macOS**, **Linux**, and **Windows**.
 │   ├── pr.md                      # /pr - create pull request
 │   └── setup.md                   # /setup - install dependencies
 └── templates/project-setup/
-    ├── CLAUDE_MD_TEMPLATE.md
-    ├── COMMANDS_TEMPLATE.md
-    ├── SKILLS_TEMPLATE.md
-    ├── AGENTS_TEMPLATE.md
-    └── TEAM_DOCS_TEMPLATE.md
+    └── ...                        # Reference templates
 ```
+
+### Project (`.claude/` + `CLAUDE.md`)
+
+Project-specific configuration:
+
+```bash
+cd your-project
+npx clauderc project
+```
+
+```
+your-project/
+├── CLAUDE.md                      # Project context for Claude
+└── .claude/
+    ├── settings.json              # Permissions & hooks
+    └── commands/                  # Project-specific commands
+        ├── dev.md
+        ├── test.md
+        ├── lint.md
+        └── ...
+```
+
+## Supported Stacks
+
+Auto-detection for 11+ languages:
+
+| Stack | Detection | Package Managers |
+|-------|-----------|------------------|
+| Node.js/TypeScript | `package.json` | npm, pnpm, yarn, bun |
+| Python | `pyproject.toml`, `requirements.txt` | poetry, pipenv, uv, pip |
+| Go | `go.mod` | go mod |
+| Rust | `Cargo.toml` | cargo |
+| Java/Kotlin | `pom.xml`, `build.gradle` | maven, gradle |
+| PHP | `composer.json` | composer |
+| Ruby | `Gemfile` | bundler |
+| C#/.NET | `*.csproj`, `*.sln` | dotnet |
+| Elixir | `mix.exs` | mix |
+| Swift | `Package.swift` | swift |
+| Dart/Flutter | `pubspec.yaml` | pub, flutter |
+
+Also detects: Monorepos (Turborepo, Nx, Lerna), CI/CD (GitHub Actions, GitLab CI, etc.)
 
 ## Commands
 
 ### init
 
-Install all components to `~/.claude/`:
+Install global components to `~/.claude/`:
 
 ```bash
-npx claude-code-setup init
+npx clauderc init
 
 # Force overwrite existing files
-npx claude-code-setup init --force
+npx clauderc init --force
 
 # Preview changes without applying
-npx claude-code-setup init --dry-run
+npx clauderc init --dry-run
 ```
 
-### update
+### project
 
-Update to the latest version:
+Setup current project with interactive wizard:
 
 ```bash
-npx claude-code-setup update
-
-# Preview what would be updated
-npx claude-code-setup update --dry-run
+npx clauderc project
 ```
 
 Features:
-- ✅ Automatic backup of modified files
-- ✅ Shows changelog between versions
-- ✅ Only updates files that changed
-- ✅ Marks deprecated files (doesn't delete)
+- Auto-detects stack, package manager, framework
+- Generates appropriate `CLAUDE.md`
+- Creates `.claude/settings.json` with permissions
+- Creates project-specific commands
+
+### update
+
+Update global components to latest version:
+
+```bash
+npx clauderc update
+
+# Preview what would be updated
+npx clauderc update --dry-run
+```
+
+Features:
+- Automatic backup of modified files
+- Shows changelog between versions
+- Only updates files that changed
 
 ### list
 
-Show installed components and version:
+Show installed components:
 
 ```bash
-npx claude-code-setup list
+npx clauderc list
 ```
 
 ### changelog
@@ -105,12 +163,12 @@ npx claude-code-setup list
 Show version history:
 
 ```bash
-npx claude-code-setup changelog
+npx clauderc changelog
 ```
 
 ## Usage in Claude Code
 
-After installation, use these in Claude Code:
+After installation:
 
 ```bash
 # Setup wizard for any project
@@ -125,16 +183,7 @@ After installation, use these in Claude Code:
 
 # Skills
 "Use project-analysis skill to analyze this codebase"
-"Use claude-code-templates skill to see template examples"
 ```
-
-## Customization
-
-After installation, customize files in `~/.claude/`:
-
-- **Add project-specific commands**: Create `.claude/commands/` in your project
-- **Add project-specific agents**: Create `.claude/agents/` in your project
-- **Share with team**: Commit `.claude/` directory to your repo
 
 ## Best Practices (from Boris Cherny)
 
@@ -159,7 +208,7 @@ Contributions are welcome! Feel free to:
 **Matheus Kindrazki**
 
 - GitHub: [@matheuskindrazki](https://github.com/matheuskindrazki)
-- Twitter: [@maikiemedia](https://twitter.com/maikiemedia)
+- Twitter: [@kindraScript](https://x.com/kindraScript)
 
 ## License
 

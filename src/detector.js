@@ -65,6 +65,18 @@ export function detectStack(projectPath = process.cwd()) {
     result.packageManager = detectJavaPackageManager(projectPath);
   }
 
+  // Detect framework for Ruby
+  const rubyStack = result.stacks.find(s => s.id === 'ruby');
+  if (rubyStack) {
+    result.framework = detectRubyFramework(projectPath);
+  }
+
+  // Detect framework for PHP
+  const phpStack = result.stacks.find(s => s.id === 'php');
+  if (phpStack) {
+    result.framework = detectPHPFramework(projectPath);
+  }
+
   // Detect monorepo
   result.monorepo = detectMonorepo(projectPath);
 
@@ -199,6 +211,32 @@ function detectJavaPackageManager(projectPath) {
   }
   if (existsSync(join(projectPath, 'build.gradle'))) {
     return { name: 'gradle', ...STACKS.java.packageManagers.gradle };
+  }
+  return null;
+}
+
+function detectRubyFramework(projectPath) {
+  const gemfile = safeReadFile(join(projectPath, 'Gemfile'));
+  if (!gemfile) return null;
+
+  for (const [name, config] of Object.entries(STACKS.ruby.frameworks)) {
+    if (gemfile.includes(config.detect)) {
+      return { name, ...config };
+    }
+  }
+  return null;
+}
+
+function detectPHPFramework(projectPath) {
+  const composerJson = safeParseJSON(join(projectPath, 'composer.json'));
+  if (!composerJson) return null;
+
+  const deps = { ...composerJson.require, ...composerJson['require-dev'] };
+
+  for (const [name, config] of Object.entries(STACKS.php.frameworks)) {
+    if (deps[config.detect]) {
+      return { name, ...config };
+    }
   }
   return null;
 }
