@@ -39,19 +39,27 @@ IMPORTANT RULES:
 Output the merged ${fileType}:`;
 
   try {
-    // Use Claude CLI in print mode for non-interactive merge
-    const result = execSync(
-      `claude -p --model haiku "${prompt.replace(/"/g, '\\"').replace(/\n/g, '\\n')}"`,
-      {
-        encoding: 'utf-8',
-        maxBuffer: 1024 * 1024 * 10, // 10MB buffer
-        timeout: 60000, // 60 second timeout
-      }
-    );
-    return result.trim();
+    // Use stdin to avoid shell escaping issues with large prompts
+    const result = execSync('claude -p --model haiku', {
+      input: prompt,
+      encoding: 'utf-8',
+      maxBuffer: 1024 * 1024 * 10, // 10MB buffer
+      timeout: 60000, // 60 second timeout
+    });
+
+    const trimmed = result.trim();
+
+    // Validate the response is not an error message
+    if (trimmed.includes('Error:') || trimmed.includes('error:') || trimmed.length < 100) {
+      console.warn('  ⚠ Claude merge returned invalid response, using new content');
+      return newContent;
+    }
+
+    return trimmed;
   } catch (error) {
     // If Claude CLI fails, return new content with a warning
-    console.warn('  ⚠ Could not use Claude for merge, using new content');
+    console.warn('  ⚠ Could not use Claude for merge (CLI not available), using new content');
+    console.warn(`  ⚠ Error: ${error.message}`);
     return newContent;
   }
 }
@@ -474,7 +482,7 @@ export async function runProjectWizard(options = {}) {
     if (hasExisting || hasExistingClaudeMd) {
       log('\n  Existing configuration detected.\n');
       const mergeChoice = await prompt.select('  How would you like to proceed?', [
-        { label: 'Merge', description: 'Use Claude to intelligently merge with existing config (recommended)' },
+        { label: 'Merge', description: 'Use Claude CLI to intelligently merge with existing config (recommended)' },
         { label: 'Overwrite', description: 'Replace all existing configuration' },
         { label: 'Cancel', description: 'Keep existing configuration unchanged' },
       ]);
@@ -488,7 +496,8 @@ export async function runProjectWizard(options = {}) {
       useMerge = mergeChoice.label === 'Merge';
 
       if (useMerge) {
-        log('\n  Will use Claude to merge configurations intelligently.\n');
+        log('\n  Will use Claude CLI to merge configurations intelligently.');
+        log('  Note: If Claude CLI is not available, new content will be used.\n');
       }
     }
 

@@ -146,31 +146,35 @@ IMPORTANT:
 - Return commands that will actually work for this project`;
 
   try {
-    // Escape the prompt for shell
-    const escapedPrompt = prompt
-      .replace(/\\/g, '\\\\')
-      .replace(/"/g, '\\"')
-      .replace(/\$/g, '\\$')
-      .replace(/`/g, '\\`');
-
-    const result = execSync(
-      `claude -p --model haiku "${escapedPrompt}"`,
-      {
-        encoding: 'utf-8',
-        maxBuffer: 1024 * 1024 * 10,
-        timeout: 120000, // 2 minute timeout
-        cwd: projectPath,
-      }
-    );
+    // Use stdin to avoid shell escaping issues with large prompts
+    const result = execSync('claude -p --model haiku', {
+      input: prompt,
+      encoding: 'utf-8',
+      maxBuffer: 1024 * 1024 * 10,
+      timeout: 120000, // 2 minute timeout
+      cwd: projectPath,
+    });
 
     // Extract JSON from response
     const jsonMatch = result.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
-      console.warn('  ⚠ Could not parse Claude response');
+      console.warn('  ⚠ Could not parse Claude response - no JSON found in output');
       return null;
     }
 
-    const analysis = JSON.parse(jsonMatch[0]);
+    let analysis;
+    try {
+      analysis = JSON.parse(jsonMatch[0]);
+    } catch (parseError) {
+      console.warn('  ⚠ Could not parse JSON from Claude response:', parseError.message);
+      return null;
+    }
+
+    // Validate the analysis has the expected structure
+    if (!analysis.stack || !analysis.commands) {
+      console.warn('  ⚠ Claude response missing required fields (stack, commands)');
+      return null;
+    }
 
     // Convert to detectStack compatible format
     return {
@@ -180,7 +184,11 @@ IMPORTANT:
       preferences: analysis.preferences,
     };
   } catch (error) {
-    console.warn('  ⚠ Claude analysis failed:', error.message);
+    if (error.code === 'ENOENT') {
+      console.warn('  ⚠ Claude CLI not found - install from https://claude.com/code');
+    } else {
+      console.warn('  ⚠ Claude analysis failed:', error.message);
+    }
     return null;
   }
 }
