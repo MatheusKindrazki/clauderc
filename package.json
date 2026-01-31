@@ -1,6 +1,6 @@
 {
   "name": "clauderc",
-  "version": "1.0.3",
+  "version": "1.0.5",
   "description": "Setup Claude Code with best practices - agents, skills, commands, and templates",
   "type": "module",
   "bin": {
