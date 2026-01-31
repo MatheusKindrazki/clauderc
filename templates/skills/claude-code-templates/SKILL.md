@@ -131,7 +131,12 @@ Location: `.claude/settings.json`
     "PostToolUse": [
       {
         "matcher": "Edit|Write",
-        "hooks": ["npm run lint --fix || true"]
+        "hooks": [
+          {
+            "type": "command",
+            "command": "npm run lint --fix || true"
+          }
+        ]
       }
     ]
   }
@@ -168,7 +173,7 @@ npm run lint && npm test && npm run build
   "hooks": {
     "PostToolUse": [{
       "matcher": "Edit|Write",
-      "hooks": ["npx eslint --fix ${file} || true"]
+      "hooks": [{ "type": "command", "command": "npx eslint --fix ${file} || true" }]
     }]
   }
 }
@@ -200,7 +205,7 @@ ruff check . && mypy . && pytest
   "hooks": {
     "PostToolUse": [{
       "matcher": "Edit|Write",
-      "hooks": ["ruff format ${file} || true"]
+      "hooks": [{ "type": "command", "command": "ruff format ${file} || true" }]
     }]
   }
 }
