@@ -177,6 +177,38 @@ Use Plan Mode (Shift+Tab 2x) for:
 - NEVER skip tests without explicit approval
 `;
 
+  content += `
+## Conventions
+
+### Commits (Conventional Commits)
+- Format: \`<type>(<scope>): <subject>\`
+- Types: \`feat\` | \`fix\` | \`docs\` | \`style\` | \`refactor\` | \`perf\` | \`test\` | \`chore\` | \`ci\`
+- Subject: imperative mood, max 72 chars, no period
+- Breaking changes: add \`!\` after type or \`BREAKING CHANGE:\` in footer
+
+### Semantic Versioning
+- \`feat\` → MINOR (1.x.0)
+- \`fix\`, \`docs\`, \`refactor\`, \`perf\`, \`style\` → PATCH (1.0.x)
+- \`BREAKING CHANGE\` or \`!\` → MAJOR (x.0.0)
+- \`test\`, \`chore\`, \`ci\` → no version change
+
+### Pull Requests
+- PR title: same Conventional Commits format
+- PR body: Summary (why), Changes (what), Test Plan
+- Run \`/verify\` before every PR
+`;
+
+  if (config.stack.commitConvention) {
+    const tools = [];
+    if (config.stack.commitConvention.commitlint) tools.push('commitlint');
+    if (config.stack.commitConvention.husky) tools.push('husky');
+    if (config.stack.commitConvention.semanticRelease) tools.push('semantic-release');
+    if (config.stack.commitConvention.commitizen) tools.push('commitizen');
+    if (tools.length > 0) {
+      content += `> This project uses ${tools.join(', ')} — follow its configured rules.\n\n`;
+    }
+  }
+
   if (customRules && customRules.length > 0) {
     content += `
 ## Project Rules
@@ -351,19 +383,70 @@ ${commands.setup || '# No setup command detected - configure in CLAUDE.md'}
 \`\`\`
 `,
 
-    pr: `# Create Pull Request
+    pr: `# Create a Semantic Pull Request
 
-Commit, push, and create a PR.
+Create a PR following Conventional Commits with structured description.
+
+## PR Title
+\`\`\`
+<type>(<scope>): <description>
+\`\`\`
+
+## PR Body Template
+- **Summary**: 1-3 bullets explaining WHAT and WHY
+- **Type of Change**: feat / fix / docs / refactor / perf / test / chore / breaking
+- **Changes**: Detailed list
+- **Breaking Changes**: If applicable, what breaks and migration steps
+- **Test Plan**: How it was tested
 
 ## Steps
-1. Stage all changes
-2. Commit with descriptive message
-3. Push to remote
-4. Create PR with \`gh pr create\`
+1. Run \`/verify\` to ensure all checks pass
+2. Analyze all commits on branch since base
+3. Determine PR type (highest-impact: breaking > feat > fix > others)
+4. Generate title in Conventional Commits format (max 72 chars)
+5. Generate structured body
+6. Push branch and create PR with \`gh pr create\`
 
 ## Prerequisites
 - \`gh\` CLI installed and authenticated
 - All tests passing (\`/verify\`)
+- Changes committed with \`/commit\`
+`,
+
+    commit: `# Create a Semantic Commit
+
+Create a well-structured commit following Conventional Commits.
+
+## Format
+\`\`\`
+<type>(<scope>): <subject>
+\`\`\`
+
+## Types
+| Type | Description | Version Impact |
+|------|-------------|----------------|
+| feat | New feature | MINOR |
+| fix | Bug fix | PATCH |
+| docs | Documentation | PATCH |
+| refactor | Code restructuring | PATCH |
+| perf | Performance improvement | PATCH |
+| test | Tests | No release |
+| chore | Build/CI/tooling | No release |
+
+## Rules
+- Imperative mood ("add" not "added")
+- Max 72 chars subject line
+- No period at end
+- Breaking changes: \`!\` after type or \`BREAKING CHANGE:\` footer
+- Reference issues: \`Fixes #123\` in footer
+
+## Steps
+1. Analyze staged changes with \`git diff --staged\`
+2. Determine type from nature of changes
+3. Identify scope (module/component affected)
+4. Write subject in imperative mood
+5. Add body if change needs explanation
+6. Execute \`git commit -m "<message>"\`
 `,
   };
 
@@ -512,6 +595,7 @@ export async function runProjectWizard(options = {}) {
       log('    ├── commands/verify.md');
       log('    ├── commands/setup.md');
       log('    ├── commands/pr.md');
+      log('    ├── commands/commit.md');
       log('    ├── settings.json');
       log('    CLAUDE.md');
       if (useMerge) {
@@ -532,6 +616,7 @@ export async function runProjectWizard(options = {}) {
       { path: join(claudeDir, 'commands', 'verify.md'), content: generateCommandFile('verify', config), type: 'command file' },
       { path: join(claudeDir, 'commands', 'setup.md'), content: generateCommandFile('setup', config), type: 'command file' },
       { path: join(claudeDir, 'commands', 'pr.md'), content: generateCommandFile('pr', config), type: 'command file' },
+      { path: join(claudeDir, 'commands', 'commit.md'), content: generateCommandFile('commit', config), type: 'command file' },
     ];
 
     for (const file of files) {
@@ -549,7 +634,7 @@ export async function runProjectWizard(options = {}) {
     log('  Next steps:');
     log('    1. Review CLAUDE.md and adjust as needed');
     log('    2. Commit .claude/ to your repository');
-    log('    3. Run /test, /lint, /verify in Claude Code\n');
+    log('    3. Run /test, /lint, /verify, /commit, /pr in Claude Code\n');
 
     return config;
   } catch (error) {

@@ -40,6 +40,9 @@ const ANALYSIS_FILES = [
   'vite.config.*',
   'next.config.*',
   'nuxt.config.*',
+  'commitlint.config.js',
+  '.releaserc',
+  'release.config.js',
 ];
 
 /**
@@ -300,6 +303,68 @@ function getRunCommand(pm) {
 }
 
 /**
+ * Detect commit convention tools
+ */
+function detectCommitConvention(projectPath) {
+  const commitlintConfigs = [
+    'commitlint.config.js',
+    'commitlint.config.cjs',
+    'commitlint.config.mjs',
+    'commitlint.config.ts',
+    '.commitlintrc.js',
+    '.commitlintrc.json',
+    '.commitlintrc.yml',
+  ];
+
+  const semanticReleaseConfigs = [
+    'release.config.js',
+    'release.config.cjs',
+    'release.config.mjs',
+    '.releaserc',
+    '.releaserc.json',
+    '.releaserc.js',
+    '.releaserc.yml',
+  ];
+
+  const commitlint = commitlintConfigs.some(f => existsSync(join(projectPath, f)));
+  const husky = existsSync(join(projectPath, '.husky/commit-msg'));
+  const semanticRelease = semanticReleaseConfigs.some(f => existsSync(join(projectPath, f)));
+
+  let commitizen = false;
+  let commitlintDep = false;
+  let conventionalChangelog = false;
+  let standardVersion = false;
+  let semanticReleaseDep = false;
+
+  try {
+    const pkg = JSON.parse(readFileSync(join(projectPath, 'package.json'), 'utf-8'));
+    const deps = { ...pkg.dependencies, ...pkg.devDependencies };
+    commitizen = !!deps['commitizen'];
+    commitlintDep = !!deps['@commitlint/cli'];
+    conventionalChangelog = !!deps['conventional-changelog'];
+    standardVersion = !!deps['standard-version'];
+    semanticReleaseDep = !!deps['semantic-release'];
+  } catch {
+    // no package.json or parse error
+  }
+
+  const hasCommitlint = commitlint || commitlintDep;
+  const hasSemanticRelease = semanticRelease || semanticReleaseDep;
+  const hasCommitizen = commitizen;
+
+  if (!hasCommitlint && !husky && !hasSemanticRelease && !hasCommitizen && !conventionalChangelog && !standardVersion) {
+    return null;
+  }
+
+  return {
+    commitlint: hasCommitlint,
+    husky,
+    semanticRelease: hasSemanticRelease,
+    commitizen: hasCommitizen,
+  };
+}
+
+/**
  * Detect project stack from current directory
  */
 export function detectStack(projectPath = process.cwd()) {
@@ -375,6 +440,9 @@ export function detectStack(projectPath = process.cwd()) {
 
   // Detect CI
   result.ci = detectCI(projectPath);
+
+  // Detect commit convention
+  result.commitConvention = detectCommitConvention(projectPath);
 
   return result;
 }

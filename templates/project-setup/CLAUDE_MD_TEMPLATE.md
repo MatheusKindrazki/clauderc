@@ -31,6 +31,13 @@ Use this template as base for generating project-specific CLAUDE.md files.
 - Always run `{{VERIFY_COMMAND}}` before commit
 - Parallel work OK for: independent modules, test files, docs
 
+## Conventions
+- Commits: [Conventional Commits](https://conventionalcommits.org) — `<type>(<scope>): <subject>`
+- Types: feat, fix, docs, style, refactor, perf, test, chore, ci
+- Breaking changes: `!` suffix or `BREAKING CHANGE:` footer
+- PRs: same title format, structured body (Summary, Changes, Test Plan)
+- Versioning: feat → MINOR, fix → PATCH, breaking → MAJOR
+
 ## Architecture
 {{ARCHITECTURE_NOTES}}
 

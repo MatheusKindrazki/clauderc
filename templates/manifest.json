@@ -42,6 +42,11 @@
       "added": "1.0.0",
       "description": "Project setup and dependency installation"
     },
+    "commands/commit.md": {
+      "version": "1.0.0",
+      "added": "1.1.0",
+      "description": "Semantic commit command"
+    },
     "templates/project-setup/CLAUDE_MD_TEMPLATE.md": {
       "version": "1.0.0",
       "added": "1.0.0",
@@ -82,6 +87,7 @@
           "commands/verify.md - Verify command",
           "commands/pr.md - PR command",
           "commands/setup.md - Setup command",
+          "commands/commit.md - Commit command",
           "templates/project-setup/* - All project setup templates"
         ],
         "changed": [],
