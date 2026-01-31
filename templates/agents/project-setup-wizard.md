@@ -128,6 +128,16 @@ Create `CLAUDE.md` in project root. Requirements:
 
 ### settings.json Format
 
+**CRITICAL: Only use properties that exist in the official schema. DO NOT invent properties.**
+
+Valid top-level keys: `permissions`, `hooks`, `attribution`, `language`, `model`, `env`, `sandbox`, `respectGitignore`, `cleanupPeriodDays`
+
+- `permissions`: `allow`, `deny`, `ask`, `defaultMode`, `additionalDirectories`
+- `hooks`: `PreToolUse`, `PostToolUse`, `Stop`, `SessionStart`, `SessionEnd`
+- `attribution`: `commit`, `pr`
+
+**NEVER use:** `version`, `project`, `description`, `defaults`, `quality_gates`, `design_system`, `conventions`, `context_optimization`, `deny_read`, `require_approval`, `auto_approve`. These DO NOT exist. Textual instructions go in CLAUDE.md.
+
 ```json
 {
   "permissions": {
@@ -140,7 +150,7 @@ Create `CLAUDE.md` in project root. Requirements:
     "PostToolUse": [
       {
         "matcher": "Edit|Write",
-        "hooks": ["{{LINT_FIX_COMMAND}}"]
+        "hooks": [{ "type": "command", "command": "{{LINT_FIX_COMMAND}}" }]
       }
     ]
   }
