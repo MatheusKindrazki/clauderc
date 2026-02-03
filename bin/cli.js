@@ -218,6 +218,7 @@ function listInstalled() {
     { name: 'Agents', path: join(CLAUDE_DIR, 'agents') },
     { name: 'Skills', path: join(CLAUDE_DIR, 'skills') },
     { name: 'Commands', path: join(CLAUDE_DIR, 'commands') },
+    { name: 'Hooks', path: join(CLAUDE_DIR, 'hooks') },
     { name: 'Templates', path: join(CLAUDE_DIR, 'templates') },
   ];
 
