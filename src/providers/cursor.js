@@ -13,6 +13,7 @@ const RULE_DESCRIPTIONS = {
   setup: 'Install dependencies and setup project',
   pr: 'Create a semantic pull request',
   commit: 'Create a semantic commit',
+  worktree: 'Manage git worktrees for parallel development',
 };
 
 function mdcFrontmatter({ description, globs, alwaysApply }) {
@@ -256,6 +257,37 @@ Create a well-structured commit following Conventional Commits.
 5. Add body if change needs explanation
 6. Execute \`git commit -m "<message>"\`
 `,
+
+    worktree: mdcFrontmatter({ description, alwaysApply: false }) +
+`# Git Worktree Management
+
+Manage parallel workspaces using git worktrees.
+
+## Setup
+\`\`\`bash
+REPO_NAME=$(basename $(git rev-parse --show-toplevel))
+WORKTREE_BASE="../\${REPO_NAME}-worktrees"
+mkdir -p "$WORKTREE_BASE"
+CURRENT=$(git branch --show-current)
+for SUFFIX in a b c; do
+  git worktree add -b "\${CURRENT}-wt-\${SUFFIX}" "\${WORKTREE_BASE}/\${SUFFIX}" HEAD
+done
+\`\`\`
+
+## Aliases
+\`\`\`bash
+alias za='cd "$(git rev-parse --show-toplevel)/../$(basename $(git rev-parse --show-toplevel))-worktrees/a"'
+alias zb='cd "$(git rev-parse --show-toplevel)/../$(basename $(git rev-parse --show-toplevel))-worktrees/b"'
+alias zc='cd "$(git rev-parse --show-toplevel)/../$(basename $(git rev-parse --show-toplevel))-worktrees/c"'
+alias z0='cd "$(git rev-parse --show-toplevel)"'
+\`\`\`
+
+## Cleanup
+\`\`\`bash
+git worktree remove "../\${REPO_NAME}-worktrees/a"
+git worktree prune
+\`\`\`
+`,
   };
 
   return ruleTemplates[name] || '';
@@ -272,7 +304,7 @@ export function generateProjectFiles(config) {
     type: '.cursorrules',
   });
 
-  for (const name of ['test', 'lint', 'verify', 'setup', 'pr', 'commit']) {
+  for (const name of ['test', 'lint', 'verify', 'setup', 'pr', 'commit', 'worktree']) {
     files.push({
       path: join(cursorDir, `${name}.mdc`),
       content: generateRule(name, config),
