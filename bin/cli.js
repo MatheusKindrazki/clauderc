@@ -5,11 +5,13 @@ import { join, dirname, sep, basename } from 'path';
 import { fileURLToPath } from 'url';
 import { homedir, platform } from 'os';
 import { createInterface } from 'readline';
+import { getProviderChoices, resolveProviders, PROVIDERS } from '../src/providers/index.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const TEMPLATES_DIR = join(__dirname, '..', 'templates');
 const CLAUDE_DIR = join(homedir(), '.claude');
+const CURSOR_DIR = join(homedir(), '.cursor', 'rules');
 const MANIFEST_FILE = join(CLAUDE_DIR, '.clauderc.json');
 const IS_WINDOWS = platform() === 'win32';
 
@@ -56,7 +58,7 @@ function banner() {
   ${c.cyan}${c.bold}╔═══════════════════════════════════════════════════════════╗${c.reset}
   ${c.cyan}${c.bold}║${c.reset}                                                           ${c.cyan}${c.bold}║${c.reset}
   ${c.cyan}${c.bold}║${c.reset}   ${c.bold}clauderc${c.reset}                                                ${c.cyan}${c.bold}║${c.reset}
-  ${c.cyan}${c.bold}║${c.reset}   ${c.dim}Best practices for Claude Code - agents, skills & more${c.reset}  ${c.cyan}${c.bold}║${c.reset}
+  ${c.cyan}${c.bold}║${c.reset}   ${c.dim}Best practices for AI coding assistants${c.reset}                 ${c.cyan}${c.bold}║${c.reset}
   ${c.cyan}${c.bold}║${c.reset}                                                           ${c.cyan}${c.bold}║${c.reset}
   ${c.cyan}${c.bold}╚═══════════════════════════════════════════════════════════╝${c.reset}
 `);
@@ -101,10 +103,16 @@ function getSourcePath(fileKey) {
   if (fileKey.startsWith('templates/')) {
     return join(TEMPLATES_DIR, 'project-setup', fileKey.replace('templates/project-setup/', ''));
   }
+  if (fileKey.startsWith('cursor/')) {
+    return join(TEMPLATES_DIR, fileKey);
+  }
   return join(TEMPLATES_DIR, fileKey);
 }
 
 function getDestPath(fileKey) {
+  if (fileKey.startsWith('cursor/')) {
+    return join(homedir(), '.cursor', fileKey.replace('cursor/', ''));
+  }
   return join(CLAUDE_DIR, fileKey);
 }
 
@@ -156,24 +164,32 @@ function showFooter() {
 `);
 }
 
-function showSuccessBanner(stats) {
+function showSuccessBanner(stats, providerNames) {
   const { created, updated, skipped } = stats;
 
+  const providerLabel = providerNames && providerNames.length > 0
+    ? providerNames.map(p => p === 'claude' ? 'Claude Code' : p === 'cursor' ? 'Cursor' : p).join(' + ')
+    : 'Claude Code';
+
   console.log(`
-  ${c.green}${c.bold}╔═══════════════════════════════════════════════════════════╗${c.reset}
-  ${c.green}${c.bold}║${c.reset}                                                           ${c.green}${c.bold}║${c.reset}
-  ${c.green}${c.bold}║${c.reset}   ${c.green}${c.bold}✓ Setup Complete!${c.reset}                                      ${c.green}${c.bold}║${c.reset}
-  ${c.green}${c.bold}║${c.reset}                                                           ${c.green}${c.bold}║${c.reset}
-  ${c.green}${c.bold}║${c.reset}   ${c.green}+${created} created${c.reset}  ${c.cyan}~${updated} updated${c.reset}  ${c.yellow}○${skipped} skipped${c.reset}                  ${c.green}${c.bold}║${c.reset}
-  ${c.green}${c.bold}║${c.reset}                                                           ${c.green}${c.bold}║${c.reset}
-  ${c.green}${c.bold}╚═══════════════════════════════════════════════════════════╝${c.reset}
+  ${c.green}${c.bold}✓ Setup Complete!${c.reset}
+
+    ${c.dim}Providers:${c.reset} ${c.cyan}${providerLabel}${c.reset}
+    ${c.green}+${created} created${c.reset}  ${c.cyan}~${updated} updated${c.reset}  ${c.yellow}○${skipped} skipped${c.reset}
 
   ${c.bold}Try these commands in Claude Code:${c.reset}
 
     ${c.cyan}Ask Claude:${c.reset} "Use project-setup-wizard to configure this project"
     ${c.cyan}Slash commands:${c.reset} /test, /lint, /verify, /pr
-
 `);
+
+  if (providerNames && providerNames.includes('cursor')) {
+    console.log(`  ${c.bold}Cursor rules installed:${c.reset}
+
+    ${c.cyan}Path:${c.reset} ${displayPath(CURSOR_DIR)}
+    ${c.dim}Rules are automatically loaded by Cursor IDE${c.reset}
+`);
+  }
 }
 
 function listInstalled() {
@@ -187,6 +203,10 @@ function listInstalled() {
   if (installed) {
     console.log(`  ${c.dim}Version:${c.reset} ${c.cyan}${installed.version}${c.reset}`);
     console.log(`  ${c.dim}Installed:${c.reset} ${new Date(installed.installedAt).toLocaleDateString()}`);
+    if (installed.providers) {
+      const providerLabel = installed.providers.map(p => p === 'claude' ? 'Claude Code' : p === 'cursor' ? 'Cursor' : p).join(', ');
+      console.log(`  ${c.dim}Providers:${c.reset} ${c.cyan}${providerLabel}${c.reset}`);
+    }
     if (pkg && isNewer(pkg.version, installed.version)) {
       console.log(`  ${c.yellow}${c.bold}Update available: v${pkg.version}${c.reset}`);
       console.log(`  ${c.dim}Run${c.reset} npx clauderc update`);
@@ -236,13 +256,54 @@ function listInstalled() {
     console.log();
   }
 
+  // Show Cursor rules if installed
+  if (installed?.providers?.includes('cursor') || existsSync(CURSOR_DIR)) {
+    console.log(`  ${c.bold}Cursor Rules${c.reset}`);
+    if (existsSync(CURSOR_DIR)) {
+      const cursorEntries = readdirSync(CURSOR_DIR, { withFileTypes: true });
+      let cursorFound = false;
+      for (const entry of cursorEntries) {
+        if (entry.isFile() && entry.name.endsWith('.mdc')) {
+          console.log(`    ${c.green}●${c.reset} ${entry.name}`);
+          cursorFound = true;
+        }
+      }
+      if (!cursorFound) {
+        console.log(`    ${c.dim}(none)${c.reset}`);
+      }
+    } else {
+      console.log(`    ${c.dim}(not installed)${c.reset}`);
+    }
+    console.log();
+  }
+
   showFooter();
 }
 
-function init(options = {}) {
-  const { force = false, dryRun = false } = options;
+async function init(options = {}) {
+  const { force = false, dryRun = false, provider = null } = options;
 
   banner();
+
+  // Determine providers
+  let providerIds;
+  if (provider) {
+    providerIds = provider === 'both' ? ['claude', 'cursor'] : [provider];
+  } else {
+    // Interactive prompt using shared provider choices
+    const rl = createInterface({ input: process.stdin, output: process.stdout });
+    const choices = getProviderChoices();
+    console.log(`  ${c.bold}Which AI coding tool(s) do you use?${c.reset}\n`);
+    choices.forEach((opt, i) => {
+      console.log(`    ${i + 1}) ${opt.label} ${c.dim}- ${opt.description}${c.reset}`);
+    });
+    const answer = await new Promise(resolve => rl.question(`\n  Enter number ${c.dim}(1)${c.reset}: `, resolve));
+    rl.close();
+    const index = parseInt(answer.trim()) - 1;
+    const selected = choices[index] || choices[0];
+    providerIds = selected.id === 'both' ? ['claude', 'cursor'] : [selected.id];
+    console.log();
+  }
 
   const pkg = loadPackageManifest();
   if (!pkg) {
@@ -252,9 +313,15 @@ function init(options = {}) {
 
   const installed = loadInstalledManifest();
 
-  console.log(`  ${c.bold}Installing Claude Code Setup${c.reset}\n`);
+  const providerLabel = providerIds.map(p => p === 'claude' ? 'Claude Code' : p === 'cursor' ? 'Cursor' : p).join(' + ');
+  console.log(`  ${c.bold}Installing ${providerLabel} Setup${c.reset}\n`);
   console.log(`  ${c.dim}Version:${c.reset}  ${c.cyan}v${pkg.version}${c.reset}`);
-  console.log(`  ${c.dim}Path:${c.reset}     ${c.cyan}${displayPath(CLAUDE_DIR)}${c.reset}`);
+  if (providerIds.includes('claude')) {
+    console.log(`  ${c.dim}Path:${c.reset}     ${c.cyan}${displayPath(CLAUDE_DIR)}${c.reset}`);
+  }
+  if (providerIds.includes('cursor')) {
+    console.log(`  ${c.dim}Cursor:${c.reset}   ${c.cyan}${displayPath(CURSOR_DIR)}${c.reset}`);
+  }
   if (installed) {
     console.log(`  ${c.dim}Previous:${c.reset} v${installed.version}`);
   }
@@ -265,21 +332,31 @@ function init(options = {}) {
   }
 
   // Create base directories
-  const dirs = ['agents', 'skills', 'commands', 'templates'];
-  for (const dir of dirs) {
-    ensureDir(join(CLAUDE_DIR, dir));
+  if (providerIds.includes('claude')) {
+    const dirs = ['agents', 'skills', 'commands', 'templates'];
+    for (const dir of dirs) {
+      ensureDir(join(CLAUDE_DIR, dir));
+    }
+  }
+  if (providerIds.includes('cursor')) {
+    ensureDir(CURSOR_DIR);
   }
 
   let created = 0, updated = 0, skipped = 0;
   const newManifest = {
     version: pkg.version,
     installedAt: new Date().toISOString(),
+    providers: providerIds,
     files: {}
   };
 
   console.log(`  ${c.bold}Files${c.reset}\n`);
 
   for (const [fileKey, fileMeta] of Object.entries(pkg.files)) {
+    // Skip files not matching selected providers
+    const fileProvider = fileMeta.provider || 'claude';
+    if (!providerIds.includes(fileProvider)) continue;
+
     const srcPath = getSourcePath(fileKey);
     const destPath = getDestPath(fileKey);
     const displayDest = displayPath(destPath);
@@ -316,7 +393,7 @@ function init(options = {}) {
   }
 
   console.log();
-  showSuccessBanner({ created, updated, skipped });
+  showSuccessBanner({ created, updated, skipped }, providerIds);
 
   if (skipped > 0 && !force) {
     console.log(`  ${c.dim}Tip: Use${c.reset} --force ${c.dim}to overwrite existing files${c.reset}\n`);
@@ -377,9 +454,12 @@ function update(options = {}) {
     console.log();
   }
 
-  // Calculate changes
+  // Filter files by installed providers
+  const providerIds = installed.providers || ['claude'];
   const installedFiles = new Set(Object.keys(installed.files || {}));
-  const packageFiles = new Set(Object.keys(pkg.files));
+  const packageFiles = new Set(
+    Object.keys(pkg.files).filter(f => providerIds.includes(pkg.files[f].provider || 'claude'))
+  );
 
   const toAdd = [...packageFiles].filter(f => !installedFiles.has(f));
   const toRemove = [...installedFiles].filter(f => !packageFiles.has(f));
@@ -447,7 +527,7 @@ function update(options = {}) {
   }
 
   console.log();
-  showSuccessBanner({ created: added, updated, skipped: 0 });
+  showSuccessBanner({ created: added, updated, skipped: 0 }, installed.providers);
 
   if (removed > 0) {
     console.log(`  ${c.yellow}Note:${c.reset} ${removed} file(s) deprecated. Delete manually if not needed.\n`);
@@ -523,19 +603,34 @@ function showHelp() {
 
   ${c.bold}Options${c.reset}
 
-    ${c.yellow}--force, -f${c.reset}   Overwrite all files
-    ${c.yellow}--dry-run${c.reset}     Preview changes without applying
+    ${c.yellow}--force, -f${c.reset}       Overwrite all files
+    ${c.yellow}--dry-run${c.reset}         Preview changes without applying
+    ${c.yellow}--provider${c.reset} ${c.cyan}<id>${c.reset}   Select provider: claude, cursor, or both
 
   ${c.bold}Examples${c.reset}
 
-    ${c.dim}# First time global setup${c.reset}
+    ${c.dim}# First time global setup (interactive provider selection)${c.reset}
     npx clauderc init
+
+    ${c.dim}# Install for Claude Code only${c.reset}
+    npx clauderc init --provider claude
+
+    ${c.dim}# Install for Cursor only${c.reset}
+    npx clauderc init --provider cursor
+
+    ${c.dim}# Install for both Claude Code and Cursor${c.reset}
+    npx clauderc init --provider both
 
     ${c.dim}# Setup current project (interactive)${c.reset}
     npx clauderc project
 
     ${c.dim}# Update global components${c.reset}
     npx clauderc update
+
+  ${c.bold}Supported Providers${c.reset}
+
+    ${c.cyan}Claude Code${c.reset}  ${c.dim}CLAUDE.md + ~/.claude/${c.reset}
+    ${c.cyan}Cursor${c.reset}       ${c.dim}.cursorrules + ~/.cursor/rules/${c.reset}
 
   ${c.bold}Two-Level Setup${c.reset}
 
@@ -544,6 +639,9 @@ function showHelp() {
     ├── skills/         ${c.dim}# Reusable skills${c.reset}
     ├── commands/       ${c.dim}# Default commands${c.reset}
     └── templates/      ${c.dim}# Templates for project setup${c.reset}
+
+    ${c.cyan}Global (~/.cursor/rules/)${c.reset}
+    └── *.mdc           ${c.dim}# Cursor rules${c.reset}
 
     ${c.cyan}Project (.claude/)${c.reset}
     ├── commands/       ${c.dim}# Project-specific commands${c.reset}
@@ -568,37 +666,56 @@ if (nodeVersion[0] < 16 || (nodeVersion[0] === 16 && nodeVersion[1] < 7)) {
 
 // Parse arguments
 const args = process.argv.slice(2);
-const command = args.find(a => !a.startsWith('-')) || 'help';
+const command = (() => {
+  for (let i = 0; i < args.length; i++) {
+    if (args[i] === '--provider') { i++; continue; }
+    if (!args[i].startsWith('-')) return args[i];
+  }
+  return 'help';
+})();
 const flags = {
   force: args.includes('--force') || args.includes('-f'),
   dryRun: args.includes('--dry-run'),
+  provider: (() => {
+    const idx = args.indexOf('--provider');
+    if (idx === -1) return null;
+    const value = args[idx + 1];
+    const valid = ['claude', 'cursor', 'both'];
+    if (!value || !valid.includes(value)) {
+      console.error(`\n  ${c.red}Error:${c.reset} --provider must be one of: ${valid.join(', ')}\n`);
+      process.exit(1);
+    }
+    return value;
+  })(),
 };
 
-switch (command) {
-  case 'init':
-  case 'install':
-    init({ force: flags.force, dryRun: flags.dryRun });
-    break;
-  case 'project':
-  case 'setup':
-    projectSetup({ dryRun: flags.dryRun });
-    break;
-  case 'update':
-  case 'upgrade':
-    update({ dryRun: flags.dryRun });
-    break;
-  case 'list':
-  case 'ls':
-    listInstalled();
-    break;
-  case 'changelog':
-  case 'changes':
-    showChangelog();
-    break;
-  case 'help':
-  case '--help':
-  case '-h':
-  default:
-    showHelp();
-    break;
-}
+(async () => {
+  switch (command) {
+    case 'init':
+    case 'install':
+      await init({ force: flags.force, dryRun: flags.dryRun, provider: flags.provider });
+      break;
+    case 'project':
+    case 'setup':
+      await projectSetup({ dryRun: flags.dryRun, provider: flags.provider });
+      break;
+    case 'update':
+    case 'upgrade':
+      update({ dryRun: flags.dryRun });
+      break;
+    case 'list':
+    case 'ls':
+      listInstalled();
+      break;
+    case 'changelog':
+    case 'changes':
+      showChangelog();
+      break;
+    case 'help':
+    case '--help':
+    case '-h':
+    default:
+      showHelp();
+      break;
+  }
+})();

@@ -1,0 +1,63 @@
+---
+description: Systematic analysis of any software project to understand stack, structure, and development workflow
+globs:
+alwaysApply: false
+---
+
+# Project Analysis
+
+Systematic analysis of any software project to understand stack, structure, and development workflow.
+
+## When to Use
+
+- Before setting up a new project
+- When joining a new codebase
+- When auditing project structure
+- Before major refactoring
+
+## Quick Analysis Checklist
+
+### 1. Identify Language & Package Manager
+
+```bash
+# Check for config files
+ls -la package.json pyproject.toml requirements.txt go.mod Cargo.toml composer.json pom.xml build.gradle 2>/dev/null
+```
+
+| File Found | Language | Package Manager |
+|------------|----------|-----------------|
+| `package.json` | JavaScript/TypeScript | npm/pnpm/bun/yarn |
+| `pnpm-lock.yaml` | - | pnpm |
+| `bun.lockb` | - | bun |
+| `yarn.lock` | - | yarn |
+| `pyproject.toml` | Python | poetry/pip |
+| `requirements.txt` | Python | pip |
+| `go.mod` | Go | go mod |
+| `Cargo.toml` | Rust | cargo |
+
+### 2. Identify Framework
+
+Check main config files, entry points, and dependencies for framework indicators.
+
+### 3. Identify Test & Lint Tools
+
+```bash
+# Check for test/lint config
+ls -la jest.config* vitest.config* .eslintrc* .prettierrc* biome.json pyproject.toml .rubocop.yml .golangci.yml 2>/dev/null
+```
+
+### 4. Identify CI/CD
+
+```bash
+ls -la .github/workflows/* .gitlab-ci.yml Jenkinsfile .circleci/config.yml 2>/dev/null
+```
+
+### 5. Generate Commands
+
+Based on detected stack, determine:
+- **setup**: Install dependencies
+- **dev**: Start development server
+- **test**: Run test suite
+- **lint**: Run linter
+- **build**: Build for production
+- **verify**: Full verification (lint + test + build)

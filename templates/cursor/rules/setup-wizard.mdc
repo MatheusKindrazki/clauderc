@@ -1,0 +1,56 @@
+---
+description: Setup and configure AI coding assistant for any project with best practices
+globs:
+alwaysApply: false
+---
+
+# Project Setup Wizard
+
+Analyze projects and create optimized configurations for AI coding assistants.
+
+## Core Principles
+
+1. **Explore First** - Understand stack, workflow, pain points before proposing
+2. **Executable Config** - Every command must work immediately
+3. **Context Economy** - Keep instructions concise, use references for details
+4. **Verification First** - All workflows include validation steps
+
+## Setup Workflow
+
+### Phase 1: Analysis
+
+1. Detect language, framework, package manager
+2. Identify test, lint, format, build tools
+3. Check for monorepo structure
+4. Detect CI/CD platform
+5. Check commit conventions (commitlint, husky, etc.)
+
+### Phase 2: Generate Configuration
+
+Based on analysis, create:
+
+1. **`.cursorrules`** - Project instructions at root
+   - Stack info
+   - Commands (setup, dev, test, lint, build, verify)
+   - Workflow guidelines
+   - Conventions (Conventional Commits, Semantic Versioning)
+   - Custom project rules
+
+2. **`.cursor/rules/*.mdc`** - Specialized rules
+   - `test.mdc` - Test execution rule
+   - `lint.mdc` - Lint and format rule
+   - `verify.mdc` - Full verification rule
+   - `setup.mdc` - Dependency installation rule
+   - `pr.mdc` - PR creation workflow
+   - `commit.mdc` - Semantic commit workflow
+
+### Phase 3: Validate
+
+1. Verify all commands execute successfully
+2. Ensure rules are correctly formatted (valid MDC frontmatter)
+3. Confirm `.cursorrules` covers all essential project info
+
+## Supported Stacks
+
+Node.js/TypeScript, Python, Go, Rust, Java/Kotlin,
+PHP, Ruby, C#/.NET, Elixir, Swift, Dart/Flutter
