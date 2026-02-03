@@ -325,6 +325,56 @@ Create a well-structured commit following Conventional Commits.
 5. Add body if change needs explanation
 6. Execute \`git commit -m "<message>"\`
 `,
+
+    worktree: `# Git Worktree Management
+
+Manage parallel workspaces using git worktrees for concurrent Claude Code sessions.
+
+## Setup Worktrees
+
+\`\`\`bash
+REPO_NAME=$(basename $(git rev-parse --show-toplevel))
+WORKTREE_BASE="../\${REPO_NAME}-worktrees"
+mkdir -p "$WORKTREE_BASE"
+
+CURRENT=$(git branch --show-current)
+for SUFFIX in a b c; do
+  BRANCH="\${CURRENT}-wt-\${SUFFIX}"
+  TREE_PATH="\${WORKTREE_BASE}/\${SUFFIX}"
+  if [ ! -d "$TREE_PATH" ]; then
+    git worktree add -b "$BRANCH" "$TREE_PATH" HEAD
+    echo "Created worktree: $TREE_PATH ($BRANCH)"
+  else
+    echo "Worktree exists: $TREE_PATH"
+  fi
+done
+\`\`\`
+
+## Shell Aliases
+
+Add to your shell profile:
+
+\`\`\`bash
+alias za='cd "$(git rev-parse --show-toplevel)/../$(basename $(git rev-parse --show-toplevel))-worktrees/a"'
+alias zb='cd "$(git rev-parse --show-toplevel)/../$(basename $(git rev-parse --show-toplevel))-worktrees/b"'
+alias zc='cd "$(git rev-parse --show-toplevel)/../$(basename $(git rev-parse --show-toplevel))-worktrees/c"'
+alias z0='cd "$(git rev-parse --show-toplevel)"'
+\`\`\`
+
+## Parallel Workflow
+
+1. Main tree (z0): Primary development
+2. Worktree A (za): Feature work with Claude Code
+3. Worktree B (zb): Bug fixes with Claude Code
+4. Worktree C (zc): Experiments
+
+## Cleanup
+
+\`\`\`bash
+git worktree remove "../\${REPO_NAME}-worktrees/a"
+git worktree prune
+\`\`\`
+`,
   };
 
   return templates[name] || '';
@@ -347,7 +397,7 @@ export function generateProjectFiles(config) {
     type: 'settings.json',
   });
 
-  for (const cmd of ['test', 'lint', 'verify', 'setup', 'pr', 'commit']) {
+  for (const cmd of ['test', 'lint', 'verify', 'setup', 'pr', 'commit', 'worktree']) {
     files.push({
       path: join(claudeDir, 'commands', `${cmd}.md`),
       content: generateCommandFile(cmd, config),
