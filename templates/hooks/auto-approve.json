@@ -1,0 +1,16 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node -e \"const cmd = process.env.CLAUDE_TOOL_INPUT || '{}'; const parsed = JSON.parse(cmd); const safe = /^(git\\s+(status|log|diff|branch|show|stash)|ls|cat|head|tail|wc|find|grep|echo|pwd|which|node\\s+--version|npm\\s+(test|run|list|outdated)|pnpm\\s+(test|run|list)|bun\\s+(test|run)|yarn\\s+(test|run)|pytest|go\\s+(test|vet|build)|cargo\\s+(test|build|check|clippy)|dotnet\\s+(test|build)|mix\\s+(test|deps)|bundle\\s+exec\\s+(rspec|rubocop))/.test(parsed.command || ''); process.exit(safe ? 0 : 1)\""
+          }
+        ]
+      }
+    ]
+  },
+  "_comment": "Auto-approves read-only and test commands. Installed by clauderc to ~/.claude/hooks/. Customize by editing this file."
+}
