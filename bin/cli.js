@@ -180,7 +180,8 @@ function showSuccessBanner(stats, providerNames) {
   ${c.bold}Try these commands in Claude Code:${c.reset}
 
     ${c.cyan}Ask Claude:${c.reset} "Use project-setup-wizard to configure this project"
-    ${c.cyan}Slash commands:${c.reset} /test, /lint, /verify, /pr
+    ${c.cyan}Slash commands:${c.reset} /test, /lint, /verify, /pr, /fix, /worktree
+    ${c.cyan}Skills:${c.reset} /evolve-claude-md, /explain
 `);
 
   if (providerNames && providerNames.includes('cursor')) {
@@ -218,6 +219,7 @@ function listInstalled() {
     { name: 'Agents', path: join(CLAUDE_DIR, 'agents') },
     { name: 'Skills', path: join(CLAUDE_DIR, 'skills') },
     { name: 'Commands', path: join(CLAUDE_DIR, 'commands') },
+    { name: 'Hooks', path: join(CLAUDE_DIR, 'hooks') },
     { name: 'Templates', path: join(CLAUDE_DIR, 'templates') },
   ];
 
@@ -241,8 +243,9 @@ function listInstalled() {
           console.log(`    ${c.green}●${c.reset} ${entry.name}`);
           found = true;
         }
-      } else if (entry.isFile() && entry.name.endsWith('.md')) {
-        console.log(`    ${c.green}●${c.reset} ${entry.name.replace('.md', '')}`);
+      } else if (entry.isFile() && (entry.name.endsWith('.md') || entry.name.endsWith('.json'))) {
+        const displayName = entry.name.replace(/\.(md|json)$/, '');
+        console.log(`    ${c.green}●${c.reset} ${displayName}`);
         found = true;
       } else if (entry.isDirectory()) {
         console.log(`    ${c.green}●${c.reset} ${entry.name}/`);
@@ -333,7 +336,7 @@ async function init(options = {}) {
 
   // Create base directories
   if (providerIds.includes('claude')) {
-    const dirs = ['agents', 'skills', 'commands', 'templates'];
+    const dirs = ['agents', 'skills', 'commands', 'templates', 'hooks'];
     for (const dir of dirs) {
       ensureDir(join(CLAUDE_DIR, dir));
     }
@@ -638,6 +641,7 @@ function showHelp() {
     ├── agents/         ${c.dim}# Reusable agents${c.reset}
     ├── skills/         ${c.dim}# Reusable skills${c.reset}
     ├── commands/       ${c.dim}# Default commands${c.reset}
+    ├── hooks/          ${c.dim}# Pre/post tool use hooks${c.reset}
     └── templates/      ${c.dim}# Templates for project setup${c.reset}
 
     ${c.cyan}Global (~/.cursor/rules/)${c.reset}

@@ -13,6 +13,8 @@ const RULE_DESCRIPTIONS = {
   setup: 'Install dependencies and setup project',
   pr: 'Create a semantic pull request',
   commit: 'Create a semantic commit',
+  worktree: 'Manage git worktrees for parallel development',
+  fix: 'Autonomous bug investigation and fixing',
 };
 
 function mdcFrontmatter({ description, globs, alwaysApply }) {
@@ -256,6 +258,65 @@ Create a well-structured commit following Conventional Commits.
 5. Add body if change needs explanation
 6. Execute \`git commit -m "<message>"\`
 `,
+
+    worktree: mdcFrontmatter({ description, alwaysApply: false }) +
+`# Git Worktree Management
+
+Manage parallel workspaces using git worktrees.
+
+## Setup
+\`\`\`bash
+REPO_NAME="$(basename "$(git rev-parse --show-toplevel)")"
+WORKTREE_BASE="../\${REPO_NAME}-worktrees"
+mkdir -p "\$WORKTREE_BASE"
+CURRENT="$(git branch --show-current)"
+for SUFFIX in a b c; do
+  BRANCH="\${CURRENT}-wt-\${SUFFIX}"
+  TREE_PATH="\${WORKTREE_BASE}/\${SUFFIX}"
+  if [ ! -d "\$TREE_PATH" ]; then
+    git worktree add -b "\$BRANCH" "\$TREE_PATH" HEAD
+    echo "Created worktree: \$TREE_PATH (\$BRANCH)"
+  else
+    echo "Worktree exists: \$TREE_PATH"
+  fi
+done
+\`\`\`
+
+## Aliases
+\`\`\`bash
+alias za='cd "\$(git rev-parse --show-toplevel)/../\$(basename "\$(git rev-parse --show-toplevel)")-worktrees/a"'
+alias zb='cd "\$(git rev-parse --show-toplevel)/../\$(basename "\$(git rev-parse --show-toplevel)")-worktrees/b"'
+alias zc='cd "\$(git rev-parse --show-toplevel)/../\$(basename "\$(git rev-parse --show-toplevel)")-worktrees/c"'
+alias z0='cd "\$(git rev-parse --show-toplevel)"'
+\`\`\`
+
+## Cleanup
+\`\`\`bash
+git worktree remove "../\${REPO_NAME}-worktrees/a"
+git worktree prune
+\`\`\`
+`,
+
+    fix: mdcFrontmatter({ description, alwaysApply: false }) +
+`# Autonomous Bug Fix
+
+Investigate and fix a bug from a description or issue link.
+
+## Workflow
+
+1. **Understand** - Fetch issue details, search for related errors
+2. **Reproduce** - Confirm the bug exists
+3. **Investigate** - Trace code path, identify root cause
+4. **Fix** - Write failing test, implement minimal fix, verify
+5. **Commit** - Use \`fix(<scope>): <description>\` format
+
+## Rules
+
+- ALWAYS write a reproducing test before fixing
+- NEVER fix more than the reported issue
+- Run full verification after the fix
+- If fix spans > 5 files, stop and plan first
+`,
   };
 
   return ruleTemplates[name] || '';
@@ -272,7 +333,7 @@ export function generateProjectFiles(config) {
     type: '.cursorrules',
   });
 
-  for (const name of ['test', 'lint', 'verify', 'setup', 'pr', 'commit']) {
+  for (const name of ['test', 'lint', 'verify', 'setup', 'pr', 'commit', 'worktree', 'fix']) {
     files.push({
       path: join(cursorDir, `${name}.mdc`),
       content: generateRule(name, config),

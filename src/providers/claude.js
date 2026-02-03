@@ -59,9 +59,24 @@ Use Plan Mode (Shift+Tab 2x) for:
 - Architecture changes
 - Database migrations
 
+### Parallel Workflow (Worktrees)
+For parallel tasks, use git worktrees:
+- Run \`/worktree\` to set up parallel workspaces
+- Use aliases: \`za\` (feature), \`zb\` (bugfix), \`zc\` (experiment), \`z0\` (main)
+- Each worktree runs its own Claude Code session independently
+
 ### Verification
 - ALWAYS run \`${commands.verify || 'tests'}\` before committing
 - NEVER skip tests without explicit approval
+
+### Advanced Prompting
+- Grill your changes: "Is this the best approach? What are the edge cases?"
+- Ask Claude to reimplement elegantly after a working prototype
+- Use subagents for focused tasks (security review, test writing)
+
+### Self-Improvement
+- Run \`/evolve-claude-md\` after fixing bugs to capture learnings
+- Claude is good at writing rules for itself - review its suggestions
 `;
 
   content += `
@@ -325,6 +340,80 @@ Create a well-structured commit following Conventional Commits.
 5. Add body if change needs explanation
 6. Execute \`git commit -m "<message>"\`
 `,
+
+    worktree: `# Git Worktree Management
+
+Manage parallel workspaces using git worktrees for concurrent Claude Code sessions.
+
+## Setup Worktrees
+
+\`\`\`bash
+REPO_NAME="$(basename "$(git rev-parse --show-toplevel)")"
+WORKTREE_BASE="../\${REPO_NAME}-worktrees"
+mkdir -p "\$WORKTREE_BASE"
+
+CURRENT="$(git branch --show-current)"
+for SUFFIX in a b c; do
+  BRANCH="\${CURRENT}-wt-\${SUFFIX}"
+  TREE_PATH="\${WORKTREE_BASE}/\${SUFFIX}"
+  if [ ! -d "\$TREE_PATH" ]; then
+    git worktree add -b "\$BRANCH" "\$TREE_PATH" HEAD
+    echo "Created worktree: \$TREE_PATH (\$BRANCH)"
+  else
+    echo "Worktree exists: \$TREE_PATH"
+  fi
+done
+\`\`\`
+
+## Shell Aliases
+
+Add to your shell profile:
+
+\`\`\`bash
+alias za='cd "\$(git rev-parse --show-toplevel)/../\$(basename "\$(git rev-parse --show-toplevel)")-worktrees/a"'
+alias zb='cd "\$(git rev-parse --show-toplevel)/../\$(basename "\$(git rev-parse --show-toplevel)")-worktrees/b"'
+alias zc='cd "\$(git rev-parse --show-toplevel)/../\$(basename "\$(git rev-parse --show-toplevel)")-worktrees/c"'
+alias z0='cd "\$(git rev-parse --show-toplevel)"'
+\`\`\`
+
+## Parallel Workflow
+
+1. Main tree (z0): Primary development
+2. Worktree A (za): Feature work with Claude Code
+3. Worktree B (zb): Bug fixes with Claude Code
+4. Worktree C (zc): Experiments
+
+## Cleanup
+
+\`\`\`bash
+git worktree remove "../\${REPO_NAME}-worktrees/a"
+git worktree prune
+\`\`\`
+`,
+
+    fix: `# Autonomous Bug Fix
+
+Investigate and fix a bug from a description or issue link.
+
+## Input
+
+Accepts: bug description, GitHub issue link, or error message/stack trace.
+
+## Workflow
+
+1. **Understand** - Fetch issue details, search for related errors
+2. **Reproduce** - Confirm the bug exists with a test or manual steps
+3. **Investigate** - Trace code path, identify root cause
+4. **Fix** - Write failing test, implement minimal fix, verify
+5. **Commit** - Use \`fix(<scope>): <description>\` format
+
+## Rules
+
+- ALWAYS write a reproducing test before fixing
+- NEVER fix more than the reported issue
+- ALWAYS run \`/verify\` after the fix
+- If fix spans > 5 files, stop and plan first
+`,
   };
 
   return templates[name] || '';
@@ -347,7 +436,7 @@ export function generateProjectFiles(config) {
     type: 'settings.json',
   });
 
-  for (const cmd of ['test', 'lint', 'verify', 'setup', 'pr', 'commit']) {
+  for (const cmd of ['test', 'lint', 'verify', 'setup', 'pr', 'commit', 'worktree', 'fix']) {
     files.push({
       path: join(claudeDir, 'commands', `${cmd}.md`),
       content: generateCommandFile(cmd, config),
