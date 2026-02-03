@@ -17,6 +17,11 @@
       "added": "1.0.0",
       "description": "Quick reference for Claude Code templates"
     },
+    "skills/evolve-claude-md/SKILL.md": {
+      "version": "1.0.0",
+      "added": "2.1.0",
+      "description": "Self-improving CLAUDE.md - analyzes errors and suggests rule updates"
+    },
     "commands/test.md": {
       "version": "1.0.0",
       "added": "1.0.0",
