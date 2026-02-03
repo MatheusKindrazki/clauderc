@@ -59,9 +59,24 @@ Use Plan Mode (Shift+Tab 2x) for:
 - Architecture changes
 - Database migrations
 
+### Parallel Workflow (Worktrees)
+For parallel tasks, use git worktrees:
+- Run \`/worktree\` to set up parallel workspaces
+- Use aliases: \`za\` (feature), \`zb\` (bugfix), \`zc\` (experiment), \`z0\` (main)
+- Each worktree runs its own Claude Code session independently
+
 ### Verification
 - ALWAYS run \`${commands.verify || 'tests'}\` before committing
 - NEVER skip tests without explicit approval
+
+### Advanced Prompting
+- Grill your changes: "Is this the best approach? What are the edge cases?"
+- Ask Claude to reimplement elegantly after a working prototype
+- Use subagents for focused tasks (security review, test writing)
+
+### Self-Improvement
+- Run \`/evolve-claude-md\` after fixing bugs to capture learnings
+- Claude is good at writing rules for itself - review its suggestions
 `;
 
   content += `
