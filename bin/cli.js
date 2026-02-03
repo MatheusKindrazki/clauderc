@@ -180,7 +180,8 @@ function showSuccessBanner(stats, providerNames) {
   ${c.bold}Try these commands in Claude Code:${c.reset}
 
     ${c.cyan}Ask Claude:${c.reset} "Use project-setup-wizard to configure this project"
-    ${c.cyan}Slash commands:${c.reset} /test, /lint, /verify, /pr
+    ${c.cyan}Slash commands:${c.reset} /test, /lint, /verify, /pr, /fix, /worktree
+    ${c.cyan}Skills:${c.reset} /evolve-claude-md, /explain
 `);
 
   if (providerNames && providerNames.includes('cursor')) {
