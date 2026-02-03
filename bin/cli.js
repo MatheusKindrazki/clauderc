@@ -333,7 +333,7 @@ async function init(options = {}) {
 
   // Create base directories
   if (providerIds.includes('claude')) {
-    const dirs = ['agents', 'skills', 'commands', 'templates'];
+    const dirs = ['agents', 'skills', 'commands', 'templates', 'hooks'];
     for (const dir of dirs) {
       ensureDir(join(CLAUDE_DIR, dir));
     }

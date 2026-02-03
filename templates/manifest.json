@@ -62,6 +62,11 @@
       "added": "2.1.0",
       "description": "Autonomous bug investigation and fixing"
     },
+    "hooks/auto-approve.json": {
+      "version": "1.0.0",
+      "added": "2.1.0",
+      "description": "Auto-approve hooks for safe read-only and test commands"
+    },
     "templates/project-setup/CLAUDE_MD_TEMPLATE.md": {
       "version": "1.0.0",
       "added": "1.0.0",
