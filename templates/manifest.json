@@ -1,5 +1,5 @@
 {
-  "version": "2.1.0",
+  "version": "1.1.0",
   "generatedAt": "2026-02-03T00:00:00.000Z",
   "files": {
     "agents/project-setup-wizard.md": {
@@ -19,12 +19,12 @@
     },
     "skills/evolve-claude-md/SKILL.md": {
       "version": "1.0.0",
-      "added": "2.1.0",
+      "added": "1.1.0",
       "description": "Self-improving CLAUDE.md - analyzes errors and suggests rule updates"
     },
     "skills/explain/SKILL.md": {
       "version": "1.0.0",
-      "added": "2.1.0",
+      "added": "1.1.0",
       "description": "Codebase visualization and architecture explanation skill"
     },
     "commands/test.md": {
@@ -59,17 +59,17 @@
     },
     "commands/worktree.md": {
       "version": "1.0.0",
-      "added": "2.1.0",
+      "added": "1.1.0",
       "description": "Git worktree management for parallel Claude Code sessions"
     },
     "commands/fix.md": {
       "version": "1.0.0",
-      "added": "2.1.0",
+      "added": "1.1.0",
       "description": "Autonomous bug investigation and fixing"
     },
     "hooks/auto-approve.json": {
       "version": "1.0.0",
-      "added": "2.1.0",
+      "added": "1.1.0",
       "description": "Auto-approve hooks for safe read-only and test commands"
     },
     "templates/project-setup/CLAUDE_MD_TEMPLATE.md": {
@@ -99,26 +99,26 @@
     },
     "cursor/rules/project-analysis.mdc": {
       "version": "1.0.0",
-      "added": "2.0.0",
+      "added": "1.0.5",
       "provider": "cursor",
       "description": "Project analysis rule for Cursor"
     },
     "cursor/rules/code-templates.mdc": {
       "version": "1.0.0",
-      "added": "2.0.0",
+      "added": "1.0.5",
       "provider": "cursor",
       "description": "Code templates reference for Cursor"
     },
     "cursor/rules/setup-wizard.mdc": {
       "version": "1.0.0",
-      "added": "2.0.0",
+      "added": "1.0.5",
       "provider": "cursor",
       "description": "Setup wizard rule for Cursor"
     }
   },
   "changelog": [
     {
-      "version": "2.1.0",
+      "version": "1.1.0",
       "date": "2026-02-03",
       "changes": {
         "added": [
@@ -142,7 +142,7 @@
       }
     },
     {
-      "version": "2.0.0",
+      "version": "1.0.5",
       "date": "2025-01-25",
       "changes": {
         "added": [
