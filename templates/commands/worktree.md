@@ -6,12 +6,12 @@ Manage parallel workspaces using git worktrees for concurrent Claude Code sessio
 
 ```bash
 # Create worktree directory structure
-REPO_NAME=$(basename $(git rev-parse --show-toplevel))
+REPO_NAME="$(basename "$(git rev-parse --show-toplevel)")"
 WORKTREE_BASE="../${REPO_NAME}-worktrees"
 mkdir -p "$WORKTREE_BASE"
 
 # Create worktrees (a, b, c) from current branch
-CURRENT=$(git branch --show-current)
+CURRENT="$(git branch --show-current)"
 for SUFFIX in a b c; do
   BRANCH="${CURRENT}-wt-${SUFFIX}"
   TREE_PATH="${WORKTREE_BASE}/${SUFFIX}"
@@ -30,9 +30,9 @@ Add these to your `~/.zshrc` or `~/.bashrc`:
 
 ```bash
 # Quick worktree switching
-alias za='cd "$(git rev-parse --show-toplevel)/../$(basename $(git rev-parse --show-toplevel))-worktrees/a"'
-alias zb='cd "$(git rev-parse --show-toplevel)/../$(basename $(git rev-parse --show-toplevel))-worktrees/b"'
-alias zc='cd "$(git rev-parse --show-toplevel)/../$(basename $(git rev-parse --show-toplevel))-worktrees/c"'
+alias za='cd "$(git rev-parse --show-toplevel)/../$(basename "$(git rev-parse --show-toplevel)")-worktrees/a"'
+alias zb='cd "$(git rev-parse --show-toplevel)/../$(basename "$(git rev-parse --show-toplevel)")-worktrees/b"'
+alias zc='cd "$(git rev-parse --show-toplevel)/../$(basename "$(git rev-parse --show-toplevel)")-worktrees/c"'
 alias z0='cd "$(git rev-parse --show-toplevel)"'  # back to main
 ```
 

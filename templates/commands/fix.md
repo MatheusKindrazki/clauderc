@@ -58,7 +58,7 @@ git diff --stat
 
 ```bash
 # Commit with fix type and reference the issue
-git add .
+git add <specific-files>
 git commit -m "fix(<scope>): <description>
 
 Fixes #<issue-number>"

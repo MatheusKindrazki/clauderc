@@ -243,8 +243,9 @@ function listInstalled() {
           console.log(`    ${c.green}●${c.reset} ${entry.name}`);
           found = true;
         }
-      } else if (entry.isFile() && entry.name.endsWith('.md')) {
-        console.log(`    ${c.green}●${c.reset} ${entry.name.replace('.md', '')}`);
+      } else if (entry.isFile() && (entry.name.endsWith('.md') || entry.name.endsWith('.json'))) {
+        const displayName = entry.name.replace(/\.(md|json)$/, '');
+        console.log(`    ${c.green}●${c.reset} ${displayName}`);
         found = true;
       } else if (entry.isDirectory()) {
         console.log(`    ${c.green}●${c.reset} ${entry.name}/`);
@@ -640,6 +641,7 @@ function showHelp() {
     ├── agents/         ${c.dim}# Reusable agents${c.reset}
     ├── skills/         ${c.dim}# Reusable skills${c.reset}
     ├── commands/       ${c.dim}# Default commands${c.reset}
+    ├── hooks/          ${c.dim}# Pre/post tool use hooks${c.reset}
     └── templates/      ${c.dim}# Templates for project setup${c.reset}
 
     ${c.cyan}Global (~/.cursor/rules/)${c.reset}
