@@ -14,6 +14,7 @@ const RULE_DESCRIPTIONS = {
   pr: 'Create a semantic pull request',
   commit: 'Create a semantic commit',
   worktree: 'Manage git worktrees for parallel development',
+  fix: 'Autonomous bug investigation and fixing',
 };
 
 function mdcFrontmatter({ description, globs, alwaysApply }) {
@@ -288,6 +289,27 @@ git worktree remove "../\${REPO_NAME}-worktrees/a"
 git worktree prune
 \`\`\`
 `,
+
+    fix: mdcFrontmatter({ description, alwaysApply: false }) +
+`# Autonomous Bug Fix
+
+Investigate and fix a bug from a description or issue link.
+
+## Workflow
+
+1. **Understand** - Fetch issue details, search for related errors
+2. **Reproduce** - Confirm the bug exists
+3. **Investigate** - Trace code path, identify root cause
+4. **Fix** - Write failing test, implement minimal fix, verify
+5. **Commit** - Use \`fix(<scope>): <description>\` format
+
+## Rules
+
+- ALWAYS write a reproducing test before fixing
+- NEVER fix more than the reported issue
+- Run full verification after the fix
+- If fix spans > 5 files, stop and plan first
+`,
   };
 
   return ruleTemplates[name] || '';
@@ -304,7 +326,7 @@ export function generateProjectFiles(config) {
     type: '.cursorrules',
   });
 
-  for (const name of ['test', 'lint', 'verify', 'setup', 'pr', 'commit', 'worktree']) {
+  for (const name of ['test', 'lint', 'verify', 'setup', 'pr', 'commit', 'worktree', 'fix']) {
     files.push({
       path: join(cursorDir, `${name}.mdc`),
       content: generateRule(name, config),

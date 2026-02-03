@@ -375,6 +375,30 @@ git worktree remove "../\${REPO_NAME}-worktrees/a"
 git worktree prune
 \`\`\`
 `,
+
+    fix: `# Autonomous Bug Fix
+
+Investigate and fix a bug from a description or issue link.
+
+## Input
+
+Accepts: bug description, GitHub issue link, or error message/stack trace.
+
+## Workflow
+
+1. **Understand** - Fetch issue details, search for related errors
+2. **Reproduce** - Confirm the bug exists with a test or manual steps
+3. **Investigate** - Trace code path, identify root cause
+4. **Fix** - Write failing test, implement minimal fix, verify
+5. **Commit** - Use \`fix(<scope>): <description>\` format
+
+## Rules
+
+- ALWAYS write a reproducing test before fixing
+- NEVER fix more than the reported issue
+- ALWAYS run \`/verify\` after the fix
+- If fix spans > 5 files, stop and plan first
+`,
   };
 
   return templates[name] || '';
@@ -397,7 +421,7 @@ export function generateProjectFiles(config) {
     type: 'settings.json',
   });
 
-  for (const cmd of ['test', 'lint', 'verify', 'setup', 'pr', 'commit', 'worktree']) {
+  for (const cmd of ['test', 'lint', 'verify', 'setup', 'pr', 'commit', 'worktree', 'fix']) {
     files.push({
       path: join(claudeDir, 'commands', `${cmd}.md`),
       content: generateCommandFile(cmd, config),
