@@ -1,5 +1,5 @@
 {
-  "version": "1.0.0",
+  "version": "2.0.0",
   "generatedAt": "2025-01-24T00:00:00.000Z",
   "files": {
     "agents/project-setup-wizard.md": {
@@ -71,9 +71,48 @@
       "version": "1.0.0",
       "added": "1.0.0",
       "description": "Template for team documentation"
+    },
+    "cursor/rules/project-analysis.mdc": {
+      "version": "1.0.0",
+      "added": "2.0.0",
+      "provider": "cursor",
+      "description": "Project analysis rule for Cursor"
+    },
+    "cursor/rules/code-templates.mdc": {
+      "version": "1.0.0",
+      "added": "2.0.0",
+      "provider": "cursor",
+      "description": "Code templates reference for Cursor"
+    },
+    "cursor/rules/setup-wizard.mdc": {
+      "version": "1.0.0",
+      "added": "2.0.0",
+      "provider": "cursor",
+      "description": "Setup wizard rule for Cursor"
     }
   },
   "changelog": [
+    {
+      "version": "2.0.0",
+      "date": "2025-01-25",
+      "changes": {
+        "added": [
+          "Multi-provider support (Claude Code + Cursor)",
+          "Interactive provider selection prompt in init command",
+          "--provider flag for non-interactive provider selection",
+          "cursor/rules/project-analysis.mdc - Cursor project analysis rule",
+          "cursor/rules/code-templates.mdc - Cursor code templates rule",
+          "cursor/rules/setup-wizard.mdc - Cursor setup wizard rule"
+        ],
+        "changed": [
+          "init command now prompts for provider selection",
+          "Updated help text with provider options",
+          "list command shows Cursor rules when installed"
+        ],
+        "removed": [],
+        "deprecated": []
+      }
+    },
     {
       "version": "1.0.0",
       "date": "2025-01-24",

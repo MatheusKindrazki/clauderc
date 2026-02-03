@@ -1,0 +1,70 @@
+---
+description: Quick reference for project configuration templates and best practices
+globs:
+alwaysApply: false
+---
+
+# Code Templates Reference
+
+Quick access to templates for setting up AI coding assistant configurations in projects.
+
+## Project Instructions Structure
+
+```markdown
+# Project Name
+
+## Stack
+- Language: X
+- Framework: Y
+- Package Manager: Z
+
+## Commands
+\`\`\`bash
+# Dev
+npm run dev
+
+# Test
+npm test
+
+# Lint
+npm run lint
+
+# Build
+npm run build
+\`\`\`
+
+## Workflow
+- Verify before committing
+- Break large tasks into smaller steps
+- Test each change before proceeding
+
+## Conventions
+- Conventional Commits format
+- Semantic Versioning
+```
+
+## Cursor Rules (MDC Format)
+
+```markdown
+---
+description: When this rule applies
+globs: **/*.ts
+alwaysApply: false
+---
+
+Rule content in markdown.
+```
+
+### MDC Fields
+
+| Field | Description |
+|-------|-------------|
+| `description` | Semantic description for when to apply (used for search) |
+| `globs` | File patterns that activate the rule (e.g., `**/*.ts`) |
+| `alwaysApply` | If `true`, rule is always included in context |
+
+### Common Patterns
+
+- **Always-apply rules**: Project conventions, commit format, coding standards
+- **Glob-scoped rules**: Language-specific guidelines, framework patterns
+- **Description-triggered rules**: Workflow rules activated by semantic matching
