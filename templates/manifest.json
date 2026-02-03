@@ -1,5 +1,5 @@
 {
-  "version": "2.0.0",
+  "version": "2.1.0",
   "generatedAt": "2025-01-24T00:00:00.000Z",
   "files": {
     "agents/project-setup-wizard.md": {
@@ -117,6 +117,30 @@
     }
   },
   "changelog": [
+    {
+      "version": "2.1.0",
+      "date": "2026-02-03",
+      "changes": {
+        "added": [
+          "skills/evolve-claude-md - Self-improving CLAUDE.md from error analysis",
+          "skills/explain - Codebase visualization and architecture explanation",
+          "commands/worktree.md - Git worktree management for parallel sessions",
+          "commands/fix.md - Autonomous bug investigation and fixing",
+          "hooks/auto-approve.json - Auto-approval for safe commands",
+          "Worktree workflow section in generated CLAUDE.md",
+          "Advanced prompting section in generated CLAUDE.md",
+          "Self-improvement section in generated CLAUDE.md",
+          "Subagent pattern guidance in CLAUDE_MD_TEMPLATE"
+        ],
+        "changed": [
+          "CLAUDE_MD_TEMPLATE.md updated with Boris Cherny productivity insights",
+          "CLI init now creates hooks/ directory",
+          "CLI list now shows installed hooks"
+        ],
+        "removed": [],
+        "deprecated": []
+      }
+    },
     {
       "version": "2.0.0",
       "date": "2025-01-25",
