@@ -57,6 +57,11 @@
       "added": "2.1.0",
       "description": "Git worktree management for parallel Claude Code sessions"
     },
+    "commands/fix.md": {
+      "version": "1.0.0",
+      "added": "2.1.0",
+      "description": "Autonomous bug investigation and fixing"
+    },
     "templates/project-setup/CLAUDE_MD_TEMPLATE.md": {
       "version": "1.0.0",
       "added": "1.0.0",
