@@ -22,6 +22,11 @@
       "added": "2.1.0",
       "description": "Self-improving CLAUDE.md - analyzes errors and suggests rule updates"
     },
+    "skills/explain/SKILL.md": {
+      "version": "1.0.0",
+      "added": "2.1.0",
+      "description": "Codebase visualization and architecture explanation skill"
+    },
     "commands/test.md": {
       "version": "1.0.0",
       "added": "1.0.0",
