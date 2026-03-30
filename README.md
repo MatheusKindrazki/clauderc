@@ -55,13 +55,19 @@ npx clauderc init
 │   └── project-setup-wizard.md    # Setup Claude Code for any project
 ├── skills/
 │   ├── project-analysis/          # Systematic project analysis
-│   └── claude-code-templates/     # Quick reference for templates
+│   ├── claude-code-templates/     # Quick reference for templates
+│   ├── evolve-claude-md/          # Self-improving CLAUDE.md
+│   └── explain/                   # Codebase visualization
 ├── commands/
 │   ├── test.md                    # /test - run tests
 │   ├── lint.md                    # /lint - lint and format
 │   ├── verify.md                  # /verify - full validation
 │   ├── pr.md                      # /pr - create pull request
-│   └── setup.md                   # /setup - install dependencies
+│   ├── setup.md                   # /setup - install dependencies
+│   ├── commit.md                  # /commit - semantic commits
+│   ├── worktree.md                # /worktree - parallel workspaces
+│   ├── fix.md                     # /fix - autonomous bug fixing
+│   └── review.md                  # /review - code review
 └── templates/project-setup/
     └── ...                        # Reference templates
 ```
@@ -183,6 +189,10 @@ After installation:
 /verify    # Full verification (lint + test + build)
 /pr        # Create a pull request
 /setup     # Install dependencies
+/commit    # Semantic commits
+/worktree  # Manage parallel workspaces
+/fix       # Autonomous bug fixing
+/review    # Code review
 
 # Skills
 "Use project-analysis skill to analyze this codebase"
@@ -191,7 +201,7 @@ After installation:
 ## Best Practices (from Boris Cherny)
 
 1. **Multiple instances** - Run 5+ Claudes in parallel for independent tasks
-2. **Opus 4.5 with thinking** - Best model for coding, faster overall
+2. **Opus 4.6** - Best model for coding, use `/fast` for faster output
 3. **Shared CLAUDE.md** - Team commits and updates regularly
 4. **Plan Mode** - Use for complex tasks (Shift+Tab twice)
 5. **Slash commands** - Automate repetitive workflows

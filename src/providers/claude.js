@@ -65,6 +65,15 @@ For parallel tasks, use git worktrees:
 - Use aliases: \`za\` (feature), \`zb\` (bugfix), \`zc\` (experiment), \`z0\` (main)
 - Each worktree runs its own Claude Code session independently
 
+### Fast Mode
+- Toggle with \`/fast\` for faster output (same Opus 4.6 model)
+- Use normal mode for complex reasoning tasks
+
+### Memory System
+- Claude Code has persistent memory at \`~/.claude/projects/*/memory/\`
+- Ask Claude to remember project-specific patterns and preferences
+- Memory persists across conversations
+
 ### Verification
 - ALWAYS run \`${commands.verify || 'tests'}\` before committing
 - NEVER skip tests without explicit approval
@@ -391,6 +400,46 @@ git worktree prune
 \`\`\`
 `,
 
+    review: `# Code Review
+
+Review code changes for quality, security, and best practices.
+
+## Input
+
+Accepts: PR number, branch name, or file paths. Defaults to current uncommitted changes.
+
+## Workflow
+
+1. **Gather changes** - Get diff from PR, branch, or working tree
+2. **Analyze** - Check for bugs, security issues, performance, readability
+3. **Report** - Structured feedback with severity levels
+
+## Review Checklist
+
+| Category | What to Check |
+|----------|---------------|
+| **Correctness** | Logic errors, edge cases, off-by-one |
+| **Security** | Injection, XSS, secrets, OWASP top 10 |
+| **Performance** | N+1 queries, unnecessary allocations, missing indexes |
+| **Readability** | Naming, complexity, dead code |
+| **Testing** | Coverage gaps, missing edge case tests |
+
+## Output Format
+
+\`\`\`markdown
+## Review: [scope]
+
+### Critical (must fix)
+- [issue + file:line + suggestion]
+
+### Warnings (should fix)
+- [issue + file:line + suggestion]
+
+### Suggestions (nice to have)
+- [improvement + rationale]
+\`\`\`
+`,
+
     fix: `# Autonomous Bug Fix
 
 Investigate and fix a bug from a description or issue link.
@@ -436,7 +485,7 @@ export function generateProjectFiles(config) {
     type: 'settings.json',
   });
 
-  for (const cmd of ['test', 'lint', 'verify', 'setup', 'pr', 'commit', 'worktree', 'fix']) {
+  for (const cmd of ['test', 'lint', 'verify', 'setup', 'pr', 'commit', 'worktree', 'fix', 'review']) {
     files.push({
       path: join(claudeDir, 'commands', `${cmd}.md`),
       content: generateCommandFile(cmd, config),

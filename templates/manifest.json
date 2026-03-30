@@ -1,6 +1,6 @@
 {
-  "version": "1.1.0",
-  "generatedAt": "2026-02-03T00:00:00.000Z",
+  "version": "1.2.0",
+  "generatedAt": "2026-03-30T00:00:00.000Z",
   "files": {
     "agents/project-setup-wizard.md": {
       "version": "1.0.0",
@@ -67,8 +67,13 @@
       "added": "1.1.0",
       "description": "Autonomous bug investigation and fixing"
     },
-    "hooks/auto-approve.json": {
+    "commands/review.md": {
       "version": "1.0.0",
+      "added": "1.2.0",
+      "description": "Code review command for PRs and diffs"
+    },
+    "hooks/auto-approve.json": {
+      "version": "1.1.0",
       "added": "1.1.0",
       "description": "Auto-approve hooks for safe read-only and test commands"
     },
@@ -117,6 +122,24 @@
     }
   },
   "changelog": [
+    {
+      "version": "1.2.0",
+      "date": "2026-03-30",
+      "changes": {
+        "added": [
+          "commands/review.md - Code review command for PRs and diffs",
+          "Fast Mode section in generated CLAUDE.md and templates",
+          "Memory System section in generated CLAUDE.md and templates"
+        ],
+        "changed": [
+          "Updated model reference from Opus 4.5 to Opus 4.6 in README",
+          "auto-approve.json expanded with more safe commands (npx tsc, ruff, mypy, golangci-lint, phpunit, phpstan, composer, git worktree list, verify scripts)",
+          "CLAUDE_MD_TEMPLATE.md updated with Fast Mode and Memory System sections"
+        ],
+        "removed": [],
+        "deprecated": []
+      }
+    },
     {
       "version": "1.1.0",
       "date": "2026-02-03",

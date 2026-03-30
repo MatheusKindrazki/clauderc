@@ -45,6 +45,15 @@ For parallel tasks, use git worktrees:
 - Each worktree runs its own Claude Code session independently
 - Merge branches back when done
 
+### Fast Mode
+- Toggle with `/fast` for faster output (same Opus 4.6 model)
+- Use normal mode for complex reasoning tasks
+
+### Memory System
+- Claude Code has persistent memory at `~/.claude/projects/*/memory/`
+- Ask Claude to remember project-specific patterns and preferences
+- Memory persists across conversations
+
 ### Verification
 - ALWAYS run `{{VERIFY_COMMAND}}` before committing
 - NEVER skip tests without explicit approval
